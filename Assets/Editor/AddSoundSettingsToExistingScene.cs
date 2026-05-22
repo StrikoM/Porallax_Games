@@ -366,8 +366,7 @@ public class AddSoundSettingsToExistingScene : EditorWindow
 
                 settingsBtnObj = new GameObject("SettingsBtn");
                 settingsBtnObj.transform.SetParent(pausePanel.transform, false);
-                Image settingsBtnImg = settingsBtnObj.AddComponent<Image>();
-                settingsBtnImg.color = new Color(0.2f, 0.2f, 0.2f, 1f);
+                settingsBtnObj.AddComponent<Image>();
                 CreateText("Text", settingsBtnObj.transform, "НАСТРОЙКИ", 30, Color.white, Vector2.zero, new Vector2(400, 80));
             }
 
@@ -380,11 +379,17 @@ public class AddSoundSettingsToExistingScene : EditorWindow
             settingsBtnRt.anchoredPosition = new Vector2(0, -25);
             settingsBtnRt.sizeDelta = new Vector2(400, 80);
 
+            // Копируем стиль с ResumeBtn на SettingsBtn
+            GameObject resumeBtnObj = FindInActiveScene("ResumeBtn");
+            if (resumeBtnObj != null)
+            {
+                CopyButtonStyle(resumeBtnObj, settingsBtnObj, "НАСТРОЙКИ");
+            }
+
             btnSettings.onClick.RemoveAllListeners();
             UnityEditor.Events.UnityEventTools.AddPersistentListener(btnSettings.onClick, new UnityEngine.Events.UnityAction(gm.OpenSettings));
 
             // Автоматически перекомпонуем другие кнопки PausePanel, если они найдены
-            GameObject resumeBtnObj = FindInActiveScene("ResumeBtn");
             if (resumeBtnObj != null && resumeBtnObj.transform.parent == pausePanel.transform)
             {
                 RectTransform rRt = resumeBtnObj.GetComponent<RectTransform>();
@@ -479,5 +484,59 @@ public class AddSoundSettingsToExistingScene : EditorWindow
             if (found != null) return found;
         }
         return null;
+    }
+
+    private static void CopyButtonStyle(GameObject sourceBtn, GameObject targetBtn, string newText)
+    {
+        if (sourceBtn == null || targetBtn == null) return;
+
+        // 1. Копируем компонент Image
+        Image sourceImage = sourceBtn.GetComponent<Image>();
+        Image targetImage = targetBtn.GetComponent<Image>();
+        if (sourceImage != null && targetImage != null)
+        {
+            targetImage.sprite = sourceImage.sprite;
+            targetImage.color = sourceImage.color;
+            targetImage.type = sourceImage.type;
+            targetImage.material = sourceImage.material;
+        }
+
+        // 2. Копируем/переносим компоненты Outline
+        Outline[] sourceOutlines = sourceBtn.GetComponents<Outline>();
+        Outline[] targetOutlines = targetBtn.GetComponents<Outline>();
+        foreach (var to in targetOutlines) DestroyImmediate(to);
+
+        foreach (var so in sourceOutlines)
+        {
+            Outline newOutline = targetBtn.AddComponent<Outline>();
+            newOutline.effectColor = so.effectColor;
+            newOutline.effectDistance = so.effectDistance;
+            newOutline.useGraphicAlpha = so.useGraphicAlpha;
+        }
+
+        // 3. Копируем стиль текста из дочернего объекта Text
+        TextMeshProUGUI sourceText = sourceBtn.GetComponentInChildren<TextMeshProUGUI>(true);
+        TextMeshProUGUI targetText = targetBtn.GetComponentInChildren<TextMeshProUGUI>(true);
+
+        if (sourceText != null && targetText != null)
+        {
+            targetText.text = newText;
+            targetText.font = sourceText.font;
+            targetText.fontSize = sourceText.fontSize;
+            targetText.fontStyle = sourceText.fontStyle;
+            targetText.color = sourceText.color;
+            targetText.alignment = sourceText.alignment;
+        }
+
+        // 4. Копируем настройки кнопки (переходы и подсветку)
+        Button sourceButton = sourceBtn.GetComponent<Button>();
+        Button targetButton = targetBtn.GetComponent<Button>();
+        if (sourceButton != null && targetButton != null)
+        {
+            targetButton.transition = sourceButton.transition;
+            targetButton.colors = sourceButton.colors;
+            targetButton.spriteState = sourceButton.spriteState;
+            targetButton.navigation = sourceButton.navigation;
+        }
     }
 }
