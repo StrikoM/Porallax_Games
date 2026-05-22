@@ -42,11 +42,11 @@ public class AddSoundSettingsToExistingScene : EditorWindow
 
         // Ищем контейнер экрана (стекло) или используем сам Canvas
         Transform parentTransform = canvas.transform;
-        GameObject screenContainerObj = GameObject.Find("ScreenContainer");
+        GameObject screenContainerObj = FindInActiveScene("ScreenContainer");
         if (screenContainerObj != null) parentTransform = screenContainerObj.transform;
 
         // Удаляем старую панель настроек, если она уже была создана
-        GameObject oldSettings = GameObject.Find("SettingsPanel");
+        GameObject oldSettings = FindInActiveScene("SettingsPanel");
         if (oldSettings != null && oldSettings.transform.parent == parentTransform)
         {
             DestroyImmediate(oldSettings);
@@ -186,7 +186,7 @@ public class AddSoundSettingsToExistingScene : EditorWindow
         settingsPanelObj.SetActive(false);
 
         // Связываем существующую кнопку SettingsButton
-        GameObject settingsBtnObj = GameObject.Find("SettingsButton");
+        GameObject settingsBtnObj = FindInActiveScene("SettingsButton");
         if (settingsBtnObj != null)
         {
             Button btn = settingsBtnObj.GetComponent<Button>();
@@ -218,7 +218,7 @@ public class AddSoundSettingsToExistingScene : EditorWindow
         }
 
         // Удаляем старую панель настроек, если она была создана
-        GameObject oldSettings = GameObject.Find("SettingsPanel");
+        GameObject oldSettings = FindInActiveScene("SettingsPanel");
         if (oldSettings != null && oldSettings.transform.parent == canvas.transform)
         {
             DestroyImmediate(oldSettings);
@@ -355,11 +355,11 @@ public class AddSoundSettingsToExistingScene : EditorWindow
         settingsPanelObj.SetActive(false);
 
         // 2. Интегрируем кнопку SETTINGS в существующий PausePanel
-        GameObject pausePanel = GameObject.Find("PausePanel");
+        GameObject pausePanel = FindInActiveScene("PausePanel");
         if (pausePanel != null)
         {
             // Ищем или создаем SettingsBtn внутри PausePanel
-            GameObject settingsBtnObj = GameObject.Find("SettingsBtn");
+            GameObject settingsBtnObj = FindInActiveScene("SettingsBtn");
             if (settingsBtnObj == null || settingsBtnObj.transform.parent != pausePanel.transform)
             {
                 if (settingsBtnObj != null) DestroyImmediate(settingsBtnObj);
@@ -384,14 +384,14 @@ public class AddSoundSettingsToExistingScene : EditorWindow
             UnityEditor.Events.UnityEventTools.AddPersistentListener(btnSettings.onClick, new UnityEngine.Events.UnityAction(gm.OpenSettings));
 
             // Автоматически перекомпонуем другие кнопки PausePanel, если они найдены
-            GameObject resumeBtnObj = GameObject.Find("ResumeBtn");
+            GameObject resumeBtnObj = FindInActiveScene("ResumeBtn");
             if (resumeBtnObj != null && resumeBtnObj.transform.parent == pausePanel.transform)
             {
                 RectTransform rRt = resumeBtnObj.GetComponent<RectTransform>();
                 rRt.anchoredPosition = new Vector2(0, 75);
             }
 
-            GameObject exitBtnObj = GameObject.Find("ExitBtn");
+            GameObject exitBtnObj = FindInActiveScene("ExitBtn");
             if (exitBtnObj != null && exitBtnObj.transform.parent == pausePanel.transform)
             {
                 RectTransform eRt = exitBtnObj.GetComponent<RectTransform>();
@@ -457,5 +457,27 @@ public class AddSoundSettingsToExistingScene : EditorWindow
         rect.anchoredPosition = anchoredPos;
         rect.sizeDelta = sizeDelta;
         return tmp;
+    }
+
+    private static GameObject FindInActiveScene(string name)
+    {
+        var rootObjs = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
+        foreach (var root in rootObjs)
+        {
+            Transform found = FindRecursive(root.transform, name);
+            if (found != null) return found.gameObject;
+        }
+        return null;
+    }
+
+    private static Transform FindRecursive(Transform parent, string name)
+    {
+        if (parent.name.Equals(name, System.StringComparison.OrdinalIgnoreCase)) return parent;
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform found = FindRecursive(parent.GetChild(i), name);
+            if (found != null) return found;
+        }
+        return null;
     }
 }
