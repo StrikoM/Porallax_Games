@@ -1217,9 +1217,99 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            if (questionType == 0) response = string.IsNullOrEmpty(currentVisitor.responseName) ? "С моими данными всё в порядке." : currentVisitor.responseName;
-            else if (questionType == 1) response = string.IsNullOrEmpty(currentVisitor.responseEyes) ? "Обычные глаза." : currentVisitor.responseEyes;
-            else if (questionType == 2) response = string.IsNullOrEmpty(currentVisitor.responseDate) ? "С датами всё верно." : currentVisitor.responseDate;
+            // Выбираем случайный индекс для разнообразия ответов
+            int randIndex = Random.Range(0, 3);
+            
+            if (questionType == 0) // Имя или ID
+            {
+                if (!string.IsNullOrEmpty(currentVisitor.responseName) && 
+                    currentVisitor.responseName != "С моим именем всё нормально." && 
+                    currentVisitor.responseName != "С моими данными всё в порядке.")
+                {
+                    response = currentVisitor.responseName;
+                }
+                else
+                {
+                    if (currentVisitor.isMonster)
+                    {
+                        string[] monsterReplies = new string[] {
+                            "Имя... моё имя... это просто имя. Оно правильное. Пропустите меня.",
+                            "В базе данных старая версия меня... Я изменился... Пропустите.",
+                            "Я спешу. Не задавайте глупых вопросов. Я живу здесь."
+                        };
+                        response = monsterReplies[randIndex];
+                    }
+                    else
+                    {
+                        string[] humanReplies = new string[] {
+                            "Ой, в паспортном столе опечатались... Мне обещали исправить на следующей неделе.",
+                            "Это моя девичья фамилия, я совсем недавно вышла замуж!",
+                            "О господи, опять принтер смазал буквы? Это точно цифра 8, а не 3."
+                        };
+                        response = humanReplies[randIndex];
+                    }
+                }
+            }
+            else if (questionType == 1) // Глаза
+            {
+                if (!string.IsNullOrEmpty(currentVisitor.responseEyes) && 
+                    currentVisitor.responseEyes != "Обычные глаза." && 
+                    currentVisitor.responseEyes != "Это контактные линзы.")
+                {
+                    response = currentVisitor.responseEyes;
+                }
+                else
+                {
+                    if (currentVisitor.isMonster)
+                    {
+                        string[] monsterReplies = new string[] {
+                            "Мои глаза... видят вас. Они нормальные. Смотрите на них.",
+                            "Свет... здесь слишком яркий свет. Мои зрачки в порядке.",
+                            "Это просто контактные линзы... человеческие линзы... да..."
+                        };
+                        response = monsterReplies[randIndex];
+                    }
+                    else
+                    {
+                        string[] humanReplies = new string[] {
+                            "Ой, я сегодня забыл надеть линзы... или наоборот, надел цветные!",
+                            "У меня сильная аллергия на тополиный пух, глаза ужасно опухли.",
+                            "Я просто очень сильно не выспался... работаю на трех работах."
+                        };
+                        response = humanReplies[randIndex];
+                    }
+                }
+            }
+            else if (questionType == 2) // Срок действия паспорта
+            {
+                if (!string.IsNullOrEmpty(currentVisitor.responseDate) && 
+                    currentVisitor.responseDate != "С датами всё верно." && 
+                    currentVisitor.responseDate != "Я просто забыл его поменять.")
+                {
+                    response = currentVisitor.responseDate;
+                }
+                else
+                {
+                    if (currentVisitor.isMonster)
+                    {
+                        string[] monsterReplies = new string[] {
+                            "Дата... это просто цифры на бумаге. Время не имеет значения.",
+                            "Паспорт свежий... он пахнет человеком... он не просрочен.",
+                            "Я должен войти. Моя семья ждет меня внутри. Дата верна."
+                        };
+                        response = monsterReplies[randIndex];
+                    }
+                    else
+                    {
+                        string[] humanReplies = new string[] {
+                            "О нет! Я совсем закрутился с работой и забыл продлить... Пожалуйста, пропустите!",
+                            "Я уже подал документы на замену, вот справка... Ой, я забыл её дома.",
+                            "Черт, неужели уже 2084 год? Как быстро летит время..."
+                        };
+                        response = humanReplies[randIndex];
+                    }
+                }
+            }
         }
         
         if (dialoguePanel == null) return;

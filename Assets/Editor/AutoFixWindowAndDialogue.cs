@@ -41,8 +41,8 @@ public class AutoFixWindowAndDialogue
             Debug.LogError("[Antigravity] Error dumping scene: " + e.Message);
         }
 
-        if (!force && EditorPrefs.GetBool("AutoFixWindowAndDialogue_v15", false)) return;
-        EditorPrefs.SetBool("AutoFixWindowAndDialogue_v15", true);
+        if (!force && EditorPrefs.GetBool("AutoFixWindowAndDialogue_v16", false)) return;
+        EditorPrefs.SetBool("AutoFixWindowAndDialogue_v16", true);
 
         Debug.Log("<color=cyan>[Antigravity] НАЧИНАЮ ПОЛНУЮ НАСТРОЙКУ ОКНА И ДИАЛОГОВОЙ ПАНЕЛИ...</color>");
 
@@ -78,6 +78,8 @@ public class AutoFixWindowAndDialogue
 
         // Убеждаемся, что WindowFrame лежит прямо в Canvas
         windowFrame.transform.SetParent(canvas.transform, false);
+        Image frameImg = windowFrame.GetComponent<Image>();
+        if (frameImg != null) frameImg.raycastTarget = false;
 
         GameObject outsideBg = GameObject.Find("OutsideBg");
         if (outsideBg == null)
@@ -101,6 +103,7 @@ public class AutoFixWindowAndDialogue
         if (outsideImg != null)
         {
             outsideImg.color = Color.white;
+            outsideImg.raycastTarget = false;
             // Пробуем восстановить исходную текстуру улицы, если она сбросилась
             string outsideImgPath = "Assets/Sprites/outside_bg.png"; // Альтернативные пути
             Sprite s = AssetDatabase.LoadAssetAtPath<Sprite>(outsideImgPath);
