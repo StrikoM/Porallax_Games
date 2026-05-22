@@ -5,10 +5,32 @@ using TMPro;
 using UnityEngine.EventSystems;
 using UnityEditor.SceneManagement;
 
+[InitializeOnLoad]
 public class MainMenuBuilder : EditorWindow
 {
+    static MainMenuBuilder()
+    {
+        EditorApplication.delayCall += () => AutoBuild();
+    }
+
+    private static void AutoBuild()
+    {
+        if (Application.isPlaying) return;
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "MainMenu") return;
+        if (GameObject.Find("SettingsPanel") == null)
+        {
+            Debug.Log("[Antigravity] SettingsPanel not found in MainMenu scene. Auto-building Main Menu...");
+            BuildMainMenu(true);
+        }
+    }
+
     [MenuItem("Parallax/Собрать Главное Меню")]
-    public static void BuildMainMenu()
+    public static void BuildMainMenuMenu()
+    {
+        BuildMainMenu(false);
+    }
+
+    public static void BuildMainMenu(bool silent = true)
     {
         // 1. Создаем папку Scenes если её нет
         if (!AssetDatabase.IsValidFolder("Assets/Scenes"))
@@ -356,6 +378,9 @@ public class MainMenuBuilder : EditorWindow
         EditorBuildSettings.scenes = newScenes;
 
         // Покажем окно об успехе
-        EditorUtility.DisplayDialog("Готово!", "Атмосферное Главное Меню успешно создано!\nОбе сцены сохранены и связаны.", "Супер");
+        if (!silent)
+        {
+            EditorUtility.DisplayDialog("Готово!", "Атмосферное Главное Меню успешно создано!\nОбе сцены сохранены и связаны.", "Супер");
+        }
     }
 }

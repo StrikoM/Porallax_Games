@@ -5,10 +5,32 @@ using TMPro;
 using UnityEngine.EventSystems;
 using UnityEditor.SceneManagement;
 
+[InitializeOnLoad]
 public class GameSceneBuilder : EditorWindow
 {
+    static GameSceneBuilder()
+    {
+        EditorApplication.delayCall += () => AutoBuild();
+    }
+
+    private static void AutoBuild()
+    {
+        if (Application.isPlaying) return;
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "GameScene") return;
+        if (GameObject.Find("SettingsPanel") == null)
+        {
+            Debug.Log("[Antigravity] SettingsPanel not found in GameScene. Auto-building Game Scene...");
+            BuildGameScene(true);
+        }
+    }
+
     [MenuItem("Parallax/Собрать GameScene (Стиль Окна)")]
-    public static void BuildGameScene()
+    public static void BuildGameSceneMenu()
+    {
+        BuildGameScene(false);
+    }
+
+    public static void BuildGameScene(bool silent = true)
     {
         var gameScene = EditorSceneManager.GetActiveScene();
         if (gameScene.name != "GameScene")
@@ -533,6 +555,9 @@ public class GameSceneBuilder : EditorWindow
         }
 
         EditorSceneManager.MarkSceneDirty(gameScene);
-        EditorUtility.DisplayDialog("Успех", "Интерфейс собран! Добавлен БЕЗОПАСНЫЙ CRT-эффект для URP.\n\nТеперь никаких ошибок быть не должно.", "Понял");
+        if (!silent)
+        {
+            EditorUtility.DisplayDialog("Успех", "Интерфейс собран! Добавлен БЕЗОПАСНЫЙ CRT-эффект для URP.\n\nТеперь никаких ошибок быть не должно.", "Понял");
+        }
     }
 }
