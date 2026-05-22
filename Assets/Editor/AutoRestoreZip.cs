@@ -3,7 +3,7 @@ using UnityEditor;
 using System.Diagnostics;
 using System.IO;
 
-[InitializeOnLoad]
+// [InitializeOnLoad]
 public class AutoRestoreZip
 {
     static AutoRestoreZip()

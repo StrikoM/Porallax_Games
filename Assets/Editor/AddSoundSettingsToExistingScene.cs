@@ -368,7 +368,7 @@ public class AddSoundSettingsToExistingScene : EditorWindow
                 settingsBtnObj.transform.SetParent(pausePanel.transform, false);
                 Image settingsBtnImg = settingsBtnObj.AddComponent<Image>();
                 settingsBtnImg.color = new Color(0.2f, 0.2f, 0.2f, 1f);
-                CreateText("Text", settingsBtnObj.transform, "НАСТРОЕК", 30, Color.white, Vector2.zero, new Vector2(400, 80));
+                CreateText("Text", settingsBtnObj.transform, "НАСТРОЙКИ", 30, Color.white, Vector2.zero, new Vector2(400, 80));
             }
 
             Button btnSettings = settingsBtnObj.GetComponent<Button>();

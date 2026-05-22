@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.IO;
 
-[InitializeOnLoad]
+// [InitializeOnLoad]
 public class AutoBeautifyDialoguePanel
 {
     static AutoBeautifyDialoguePanel()

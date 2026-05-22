@@ -3,7 +3,7 @@ using UnityEditor;
 using System.IO;
 using System.Diagnostics;
 
-[InitializeOnLoad]
+// [InitializeOnLoad]
 public class AutoTotalRebuild
 {
     static AutoTotalRebuild()

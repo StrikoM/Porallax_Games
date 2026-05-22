@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine.UI;
 using TMPro;
 
-[InitializeOnLoad]
+// [InitializeOnLoad]
 public class AutoAddInterrogationUI
 {
     static AutoAddInterrogationUI()
