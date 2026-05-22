@@ -13,6 +13,12 @@ public class MainMenu : MonoBehaviour
     public AudioSource uiAudioSource;
     public AudioClip buttonClickSound;
 
+    [Header("Настройки")]
+    public GameObject settingsPanel;
+    public UnityEngine.UI.Slider musicSlider;
+    public UnityEngine.UI.Slider sfxSlider;
+
+
     void Start()
     {
         // ОЧЕНЬ ВАЖНО: При загрузке меню сбрасываем время и возвращаем курсор.
@@ -48,6 +54,12 @@ public class MainMenu : MonoBehaviour
         if (levelSelectButton != null)
         {
             levelSelectButton.SetActive(unlockedShift > 0);
+        }
+
+        // Инициализируем громкость звуков UI
+        if (uiAudioSource != null)
+        {
+            uiAudioSource.volume = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
         }
     }
 
@@ -212,6 +224,50 @@ public class MainMenu : MonoBehaviour
             RectTransform txtRt = txtObj.GetComponent<RectTransform>();
             txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
             txtRt.offsetMin = Vector2.zero; txtRt.offsetMax = Vector2.zero;
+        }
+    }
+
+    // ==========================================
+    // ЛОГИКА НАСТРОЕК ЗВУКА
+    // ==========================================
+    public void ShowSettingsPanel()
+    {
+        if (uiAudioSource != null && buttonClickSound != null) uiAudioSource.PlayOneShot(buttonClickSound);
+
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(true);
+            
+            float musicVol = PlayerPrefs.GetFloat("MusicVolume", 0.5f);
+            float sfxVol = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
+
+            if (musicSlider != null) musicSlider.value = musicVol;
+            if (sfxSlider != null) sfxSlider.value = sfxVol;
+        }
+    }
+
+    public void HideSettingsPanel()
+    {
+        if (uiAudioSource != null && buttonClickSound != null) uiAudioSource.PlayOneShot(buttonClickSound);
+
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+        }
+        PlayerPrefs.Save();
+    }
+
+    public void OnMusicVolumeChanged(float value)
+    {
+        PlayerPrefs.SetFloat("MusicVolume", value);
+    }
+
+    public void OnSFXVolumeChanged(float value)
+    {
+        PlayerPrefs.SetFloat("SFXVolume", value);
+        if (uiAudioSource != null)
+        {
+            uiAudioSource.volume = value;
         }
     }
 }

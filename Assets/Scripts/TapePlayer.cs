@@ -68,6 +68,9 @@ public class TapePlayer : MonoBehaviour
 
     void Update()
     {
+        float masterMusic = PlayerPrefs.GetFloat("MusicVolume", 0.5f);
+        playerVolume = masterMusic * 0.35f; // Масштабируем до оригинального уровня 0.35f
+
         if (!isPlaying) return;
 
         timeElapsed += Time.deltaTime;

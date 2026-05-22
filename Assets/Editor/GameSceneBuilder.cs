@@ -279,14 +279,142 @@ public class GameSceneBuilder : EditorWindow
         GameObject pausePanelObj = CreatePanel("PausePanel", canvasObj.transform, new Color(0, 0, 0, 0.85f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         CreateText("PauseTitle", pausePanelObj.transform, "ИГРА ПРИОСТАНОВЛЕНА", 70, Color.white, new Vector2(0, 200), new Vector2(800, 150));
         
-        GameObject btnResumeObj = CreatePanel("ResumeBtn", pausePanelObj.transform, new Color(0.2f, 0.5f, 0.2f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 0), new Vector2(400, 80));
+        GameObject btnResumeObj = CreatePanel("ResumeBtn", pausePanelObj.transform, new Color(0.2f, 0.5f, 0.2f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 75), new Vector2(400, 80));
         Button btnResume = btnResumeObj.AddComponent<Button>();
         CreateText("Text", btnResumeObj.transform, "ПРОДОЛЖИТЬ ИГРУ", 30, Color.white, Vector2.zero, new Vector2(400, 80));
 
-        GameObject btnPauseExitObj = CreatePanel("ExitBtn", pausePanelObj.transform, new Color(0.5f, 0.2f, 0.2f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -100), new Vector2(400, 80));
+        GameObject btnSettingsObj = CreatePanel("SettingsBtn", pausePanelObj.transform, new Color(0.2f, 0.2f, 0.2f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -25), new Vector2(400, 80));
+        Button btnSettings = btnSettingsObj.AddComponent<Button>();
+        CreateText("Text", btnSettingsObj.transform, "НАСТРОЙКИ", 30, Color.white, Vector2.zero, new Vector2(400, 80));
+
+        GameObject btnPauseExitObj = CreatePanel("ExitBtn", pausePanelObj.transform, new Color(0.5f, 0.2f, 0.2f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -125), new Vector2(400, 80));
         Button btnPauseExit = btnPauseExitObj.AddComponent<Button>();
         CreateText("Text", btnPauseExitObj.transform, "В ГЛАВНОЕ МЕНЮ", 30, Color.white, Vector2.zero, new Vector2(400, 80));
         pausePanelObj.SetActive(false);
+
+        // ===================================================
+        // ПРОЦЕДУРНОЕ СТРОЕНИЕ ПАНЕЛИ НАСТРОЕК (SettingsPanel)
+        // ===================================================
+        GameObject settingsPanelObj = CreatePanel("SettingsPanel", canvasObj.transform, new Color(0.01f, 0.05f, 0.01f, 0.98f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        settingsPanelObj.transform.SetAsLastSibling();
+        
+        Color neonGreen = new Color(0.2f, 1f, 0.2f, 1f);
+
+        // Рамка панели настроек
+        // Верхняя
+        GameObject sLineT = new GameObject("LineT"); sLineT.transform.SetParent(settingsPanelObj.transform, false);
+        sLineT.AddComponent<Image>().color = neonGreen;
+        RectTransform srT = sLineT.GetComponent<RectTransform>(); srT.anchorMin = new Vector2(0, 1); srT.anchorMax = new Vector2(1, 1); srT.anchoredPosition = Vector2.zero; srT.sizeDelta = new Vector2(0, 10);
+        // Нижняя
+        GameObject sLineB = new GameObject("LineB"); sLineB.transform.SetParent(settingsPanelObj.transform, false);
+        sLineB.AddComponent<Image>().color = neonGreen;
+        RectTransform srB = sLineB.GetComponent<RectTransform>(); srB.anchorMin = new Vector2(0, 0); srB.anchorMax = new Vector2(1, 0); srB.anchoredPosition = Vector2.zero; srB.sizeDelta = new Vector2(0, 10);
+        // Левая
+        GameObject sLineL = new GameObject("LineL"); sLineL.transform.SetParent(settingsPanelObj.transform, false);
+        sLineL.AddComponent<Image>().color = neonGreen;
+        RectTransform srL = sLineL.GetComponent<RectTransform>(); srL.anchorMin = new Vector2(0, 0); srL.anchorMax = new Vector2(0, 1); srL.anchoredPosition = Vector2.zero; srL.sizeDelta = new Vector2(10, 0);
+        // Правая
+        GameObject sLineR = new GameObject("LineR"); sLineR.transform.SetParent(settingsPanelObj.transform, false);
+        sLineR.AddComponent<Image>().color = neonGreen;
+        RectTransform srR = sLineR.GetComponent<RectTransform>(); srR.anchorMin = new Vector2(1, 0); srR.anchorMax = new Vector2(1, 1); srR.anchoredPosition = Vector2.zero; srR.sizeDelta = new Vector2(10, 0);
+
+        // Заголовок настроек
+        CreateText("SettingsTitle", settingsPanelObj.transform, "НАСТРОЙКИ ЗВУКА", 70, neonGreen, new Vector2(0, 350), new Vector2(800, 150));
+
+        // Вспомогательная функция для создания слайдеров
+        System.Func<string, Vector2, Slider> CreateVolumeSlider = (labelText, anchoredPos) =>
+        {
+            GameObject container = new GameObject(labelText + "_SliderContainer");
+            container.transform.SetParent(settingsPanelObj.transform, false);
+            RectTransform contRt = container.AddComponent<RectTransform>();
+            contRt.anchorMin = new Vector2(0.5f, 0.5f);
+            contRt.anchorMax = new Vector2(0.5f, 0.5f);
+            contRt.anchoredPosition = anchoredPos;
+            contRt.sizeDelta = new Vector2(800, 200);
+
+            // Текстовая подпись
+            CreateText(labelText + "_Label", container.transform, labelText, 36, neonGreen, new Vector2(0, 60), new Vector2(800, 50));
+
+            // Сам объект Слайдера
+            GameObject sliderObj = new GameObject("Slider");
+            sliderObj.transform.SetParent(container.transform, false);
+            RectTransform slRt = sliderObj.AddComponent<RectTransform>();
+            slRt.anchorMin = new Vector2(0.5f, 0.5f);
+            slRt.anchorMax = new Vector2(0.5f, 0.5f);
+            slRt.anchoredPosition = new Vector2(0, -20);
+            slRt.sizeDelta = new Vector2(600, 40);
+
+            Slider slider = sliderObj.AddComponent<Slider>();
+
+            // Background слайдера
+            GameObject bg = new GameObject("Background");
+            bg.transform.SetParent(sliderObj.transform, false);
+            Image bgImg = bg.AddComponent<Image>();
+            bgImg.color = new Color(0f, 0.2f, 0f, 1f); // Темный зеленый
+            RectTransform bgRt = bg.GetComponent<RectTransform>();
+            bgRt.anchorMin = new Vector2(0f, 0.25f);
+            bgRt.anchorMax = new Vector2(1f, 0.75f);
+            bgRt.offsetMin = Vector2.zero;
+            bgRt.offsetMax = Vector2.zero;
+
+            // Fill Area слайдера
+            GameObject fillArea = new GameObject("Fill Area");
+            fillArea.transform.SetParent(sliderObj.transform, false);
+            RectTransform faRt = fillArea.AddComponent<RectTransform>();
+            faRt.anchorMin = new Vector2(0f, 0.25f);
+            faRt.anchorMax = new Vector2(1f, 0.75f);
+            faRt.offsetMin = new Vector2(5, 0);
+            faRt.offsetMax = new Vector2(-5, 0);
+
+            GameObject fill = new GameObject("Fill");
+            fill.transform.SetParent(fillArea.transform, false);
+            Image fillImg = fill.AddComponent<Image>();
+            fillImg.color = neonGreen; // Яркий неоновый зеленый для заполненной части
+            RectTransform fillRt = fill.GetComponent<RectTransform>();
+            fillRt.anchorMin = Vector2.zero;
+            fillRt.anchorMax = Vector2.one;
+            fillRt.offsetMin = Vector2.zero;
+            fillRt.offsetMax = Vector2.zero;
+
+            // Handle Area слайдера
+            GameObject handleArea = new GameObject("Handle Area");
+            handleArea.transform.SetParent(sliderObj.transform, false);
+            RectTransform haRt = handleArea.AddComponent<RectTransform>();
+            haRt.anchorMin = new Vector2(0f, 0f);
+            haRt.anchorMax = new Vector2(1f, 1f);
+            haRt.offsetMin = new Vector2(10, 0);
+            haRt.offsetMax = new Vector2(-10, 0);
+
+            GameObject handle = new GameObject("Handle");
+            handle.transform.SetParent(handleArea.transform, false);
+            Image handleImg = handle.AddComponent<Image>();
+            handleImg.color = Color.white; // Белая пиксельная ручка
+            RectTransform handleRt = handle.GetComponent<RectTransform>();
+            handleRt.sizeDelta = new Vector2(25, 0);
+            handleRt.anchorMin = new Vector2(0f, 0f);
+            handleRt.anchorMax = new Vector2(0f, 1f);
+            handleRt.anchoredPosition = Vector2.zero;
+
+            // Настройка компонента слайдера
+            slider.fillRect = fillRt;
+            slider.handleRect = handleRt;
+            slider.targetGraphic = handleImg;
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+
+            return slider;
+        };
+
+        // Создаем слайдеры громкости музыки и SFX
+        Slider musicSld = CreateVolumeSlider("МУЗЫКА / ФОН", new Vector2(0, 100));
+        Slider sfxSld = CreateVolumeSlider("ЭФФЕКТЫ / SFX", new Vector2(0, -100));
+
+        // Кнопка НАЗАД настроек (в стиле паузы)
+        GameObject btnBackObj = CreatePanel("BackBtn", settingsPanelObj.transform, new Color(0.2f, 0.2f, 0.2f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -300), new Vector2(400, 80));
+        Button btnBack = btnBackObj.AddComponent<Button>();
+        CreateText("Text", btnBackObj.transform, "НАЗАД", 30, Color.white, Vector2.zero, new Vector2(400, 80));
+
+        settingsPanelObj.SetActive(false); // Скрыта по умолчанию
 
         // 1. Панель Победы
         GameObject victoryPanelObj = CreatePanel("VictoryPanel", canvasObj.transform, new Color(0, 0, 0, 0.9f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -337,6 +465,9 @@ public class GameSceneBuilder : EditorWindow
         gm.victoryStatsText = victoryStats;
         gm.gameOverPanel = gameOverPanelObj;
         gm.gameOverReasonText = gameOverReason;
+        gm.settingsPanel = settingsPanelObj;
+        gm.musicSlider = musicSld;
+        gm.sfxSlider = sfxSld;
 
         // --- ДИАЛОГИ (АНИМЕ СТИЛЬ) ---
         GameObject diagPanel = CreatePanel("DialoguePanel", canvasObj.transform, new Color(0.05f, 0.05f, 0.08f, 0.9f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, 150), new Vector2(1200, 250));
@@ -378,7 +509,13 @@ public class GameSceneBuilder : EditorWindow
         // Привязываем кнопки паузы
         UnityEditor.Events.UnityEventTools.AddPersistentListener(btnPause.onClick, new UnityEngine.Events.UnityAction(gm.TogglePause));
         UnityEditor.Events.UnityEventTools.AddPersistentListener(btnResume.onClick, new UnityEngine.Events.UnityAction(gm.TogglePause));
+        UnityEditor.Events.UnityEventTools.AddPersistentListener(btnSettings.onClick, new UnityEngine.Events.UnityAction(gm.OpenSettings));
         UnityEditor.Events.UnityEventTools.AddPersistentListener(btnPauseExit.onClick, new UnityEngine.Events.UnityAction(gm.ReturnToMainMenu));
+
+        // Привязываем кнопки настроек
+        UnityEditor.Events.UnityEventTools.AddPersistentListener(btnBack.onClick, new UnityEngine.Events.UnityAction(gm.CloseSettings));
+        UnityEditor.Events.UnityEventTools.AddPersistentListener(musicSld.onValueChanged, new UnityEngine.Events.UnityAction<float>(gm.OnMusicVolumeChanged));
+        UnityEditor.Events.UnityEventTools.AddPersistentListener(sfxSld.onValueChanged, new UnityEngine.Events.UnityAction<float>(gm.OnSFXVolumeChanged));
 
         // Привязываем кнопки завершения к GameManager
         UnityEditor.Events.UnityEventTools.AddPersistentListener(btnContinueShift.onClick, new UnityEngine.Events.UnityAction(gm.LoadNextShift));

@@ -89,6 +89,12 @@ public class GameManager : MonoBehaviour
     public Button interrogateBtn;
     public GameObject questionsPanel; // Панель с вариантами вопросов
 
+    [Header("Настройки")]
+    public GameObject settingsPanel;
+    public UnityEngine.UI.Slider musicSlider;
+    public UnityEngine.UI.Slider sfxSlider;
+
+
     [Header("Телефон (Сюжет)")]
     public Button phoneButton;
     public string[] shiftPhoneMessages; 
@@ -325,6 +331,12 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        // Синхронизируем громкость эффектов в реальном времени
+        if (sfxAudioSource != null)
+        {
+            sfxAudioSource.volume = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
+        }
+
         VisitorData currentVisitor = (isShiftActive && currentShift != null && currentVisitorIndex < currentShift.shiftVisitors.Length) 
             ? currentShift.shiftVisitors[currentVisitorIndex] : null;
 
@@ -1016,8 +1028,56 @@ public class GameManager : MonoBehaviour
             pausePanel.SetActive(isPaused);
         }
 
+        // При закрытии паузы закрываем и настройки
+        if (!isPaused && settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+            PlayerPrefs.Save();
+        }
+
         Time.timeScale = isPaused ? 0f : 1f;
         Debug.Log(isPaused ? "Пауза ВКЛ" : "Пауза ВЫКЛ");
+    }
+
+    // ==========================================
+    // ЛОГИКА НАСТРОЕК ЗВУКА
+    // ==========================================
+    public void OpenSettings()
+    {
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(true);
+            settingsPanel.transform.SetAsLastSibling(); // Поверх всего!
+            
+            float musicVol = PlayerPrefs.GetFloat("MusicVolume", 0.5f);
+            float sfxVol = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
+
+            if (musicSlider != null) musicSlider.value = musicVol;
+            if (sfxSlider != null) sfxSlider.value = sfxVol;
+        }
+    }
+
+    public void CloseSettings()
+    {
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+        }
+        PlayerPrefs.Save();
+    }
+
+    public void OnMusicVolumeChanged(float value)
+    {
+        PlayerPrefs.SetFloat("MusicVolume", value);
+    }
+
+    public void OnSFXVolumeChanged(float value)
+    {
+        PlayerPrefs.SetFloat("SFXVolume", value);
+        if (sfxAudioSource != null)
+        {
+            sfxAudioSource.volume = value;
+        }
     }
     private bool isTypingDialogue = false;
     private string fullDialogueText = "";

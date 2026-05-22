@@ -41,8 +41,8 @@ public class AutoFixWindowAndDialogue
             Debug.LogError("[Antigravity] Error dumping scene: " + e.Message);
         }
 
-        if (!force && EditorPrefs.GetBool("AutoFixWindowAndDialogue_v16", false)) return;
-        EditorPrefs.SetBool("AutoFixWindowAndDialogue_v16", true);
+        if (!force && EditorPrefs.GetBool("AutoFixWindowAndDialogue_v17", false)) return;
+        EditorPrefs.SetBool("AutoFixWindowAndDialogue_v17", true);
 
         Debug.Log("<color=cyan>[Antigravity] НАЧИНАЮ ПОЛНУЮ НАСТРОЙКУ ОКНА И ДИАЛОГОВОЙ ПАНЕЛИ...</color>");
 
@@ -1054,6 +1054,7 @@ public class AutoFixWindowAndDialogue
             "VictoryPanel",
             "GameOverPanel",
             "PausePanel",
+            "SettingsPanel",
             "PauseBtn",
             "RagCursor",
             "CRT_Overlay_Safe",

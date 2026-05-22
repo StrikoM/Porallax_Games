@@ -27,6 +27,13 @@ public class DystopianAmbience : MonoBehaviour
         if (!src.isPlaying) src.Play();
     }
 
+    void Update()
+    {
+        float masterMusic = PlayerPrefs.GetFloat("MusicVolume", 0.5f);
+        mainVolume = masterMusic * 0.2f; // Масштабируем до безопасного уровня
+    }
+
+
     // Эта магическая функция Unity позволяет нам СОЗДАВАТЬ звук прямо из кода (без mp3 файлов!)
     void OnAudioFilterRead(float[] data, int channels)
     {
