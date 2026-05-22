@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a269037dea62e87409adf9e50f27cbcc, type: 3}
+  m_Name: Visitor_03
+  m_EditorClassIdentifier: Assembly-CSharp::VisitorData
+  visitorSprite: {fileID: 2967655680134569204, guid: 196e8fd8a079c4143874ee82af8f6698, type: 3}
+  dossierSprite: {fileID: 0}
+  dossierName: "\u0414\u043C\u0438\u0442\u0440\u0438\u0439 \u0421\u043E\u043A\u043E\u043B\u043E\u0432"
+  dossierId: 77-B-01
+  dossierEyes: "\u0421\u0435\u0440\u044B\u0435"
+  dossierExpDate: 
+  passportName: "\u0414\u043C\u0438\u0442\u0440\u0438\u0439 \u0421\u043E\u043A\u043E\u043B\u043E\u0432"
+  passportId: 77-B-01
+  passportEyes: "\u0421\u0435\u0440\u044B\u0435"
+  passportExpDate: 
+  isMonster: 0
+  welcomeSpeech: 
+  responseName: 
+  responseEyes: 
+  responseDate: 

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9529425968cb02a448ca6cada622146d, type: 3}
+  m_Name: Shift_5
+  m_EditorClassIdentifier: Assembly-CSharp::ShiftData
+  shiftName: "\u0421\u043C\u0435\u043D\u0430 5"
+  directiveText: "\u0423\u0433\u0440\u043E\u0437\u0430 \u0432\u044B\u0441\u043E\u043A\u0430\u044F.
+    \u0412\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u044C\u043D\u043E \u0447\u0438\u0442\u0430\u0439\u0442\u0435
+    \u0438\u043C\u0435\u043D\u0430."
+  shiftVisitors:
+  - {fileID: 11400000, guid: a886d9e8c92001e46ba2443f8c4c277d, type: 2}
+  - {fileID: 11400000, guid: 92cb050958e44b64dabc777276121a26, type: 2}
+  - {fileID: 11400000, guid: f5d8a4a88d6984542b98caf49961bf19, type: 2}
+  - {fileID: 11400000, guid: 9d61e9e53b9a1ca4b8cea0798884b400, type: 2}
+  - {fileID: 11400000, guid: 7b33c7bded14b7c43a75d9113576c85f, type: 2}
