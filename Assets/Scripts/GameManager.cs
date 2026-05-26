@@ -88,6 +88,11 @@ public class GameManager : MonoBehaviour
     [Header("Кнопка Допроса")]
     public Button interrogateBtn;
     public GameObject questionsPanel; // Панель с вариантами вопросов
+    
+    [Header("Газета смены")]
+    public GameObject newspaperPanel;
+    public TMPro.TextMeshProUGUI newspaperHeadlineText;
+    public TMPro.TextMeshProUGUI newspaperBodyText;
 
     [Header("Настройки")]
     public GameObject settingsPanel;
@@ -211,6 +216,23 @@ public class GameManager : MonoBehaviour
         UpdateUI();
         if (dialoguePanel != null) dialoguePanel.SetActive(false);
         
+        // Показываем газету, если она настроена для смены
+        if (currentShift != null && currentShift.hasNewspaper && newspaperPanel != null)
+        {
+            if (newspaperHeadlineText != null) newspaperHeadlineText.text = currentShift.newspaperHeadline;
+            if (newspaperBodyText != null) newspaperBodyText.text = currentShift.newspaperBody;
+            newspaperPanel.SetActive(true);
+        }
+        else
+        {
+            StartShiftAfterNewspaper();
+        }
+    }
+
+    public void StartShiftAfterNewspaper()
+    {
+        if (newspaperPanel != null) newspaperPanel.SetActive(false);
+        
         // Проверяем, есть ли сообщение от босса для этой смены
         if (shiftPhoneMessages != null && currentShiftIndex < shiftPhoneMessages.Length && !string.IsNullOrEmpty(shiftPhoneMessages[currentShiftIndex]))
         {
@@ -238,6 +260,13 @@ public class GameManager : MonoBehaviour
 
     void ShowVisitor(int index)
     {
+        GameObject isolateBtn = GameObject.Find("EmergencyIsolateBtn");
+        if (isolateBtn != null)
+        {
+            Image img = isolateBtn.GetComponent<Image>();
+            if (img != null) img.color = Color.white;
+        }
+
         if (currentShift == null || currentShift.shiftVisitors.Length == 0) return;
 
         if (index >= currentShift.shiftVisitors.Length)
@@ -498,8 +527,9 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                // В 80% случаев монстр просто проходит внутрь. Мы мгновенно проигрываем!
-                StartCoroutine(StampRoutine(true, true, "Вы впустили монстра в здание. Жильцы мертвы. ИГРА ОКОНЧЕНА.", false));
+                // В 80% случаев монстр просто проходит внутрь. Мы мгновенно проигрываем с камерным числом жертв!
+                int victims = Random.Range(5, 45);
+                StartCoroutine(StampRoutine(true, true, $"Вы впустили монстра в здание. Число погибших жильцов: {victims} человек. Жильцы мертвы. ИГРА ОКОНЧЕНА.", false));
             }
             return;
         }
@@ -510,6 +540,13 @@ public class GameManager : MonoBehaviour
     public void OnRejectClicked()
     {
         if (!isShiftActive || isAnimating || currentShift == null) return; 
+
+        GameObject isolateBtn = GameObject.Find("EmergencyIsolateBtn");
+        if (isolateBtn != null)
+        {
+            Image img = isolateBtn.GetComponent<Image>();
+            if (img != null) img.color = new Color(0.9f, 0.1f, 0.1f, 1f); // Красный цвет
+        }
 
         VisitorData currentVisitor = currentShift.shiftVisitors[currentVisitorIndex];
         
@@ -927,8 +964,8 @@ public class GameManager : MonoBehaviour
             // Если фото досье не привязано в инспекторе, ищем его
             if (dossierPhotoDisplay == null)
             {
-                Transform photoT = canvas.transform.Find("WindowFrame/Desk/DocumentTray/DossierPhoto");
-                if (photoT != null) dossierPhotoDisplay = photoT.GetComponent<Image>();
+                GameObject photoObj = GameObject.Find("DossierPhoto");
+                if (photoObj != null) dossierPhotoDisplay = photoObj.GetComponent<Image>();
             }
         }
 
@@ -938,7 +975,7 @@ public class GameManager : MonoBehaviour
         foreach (var btn in allButtons)
         {
             if (btn.name == "ApproveBtn") { btn.onClick.RemoveAllListeners(); btn.onClick.AddListener(OnApproveClicked); }
-            if (btn.name == "RejectBtn") { btn.onClick.RemoveAllListeners(); btn.onClick.AddListener(OnRejectClicked); }
+            if (btn.name == "RejectBtn" || btn.name == "EmergencyIsolateBtn") { btn.onClick.RemoveAllListeners(); btn.onClick.AddListener(OnRejectClicked); }
             if (btn.name == "NextShiftBtn") { btn.onClick.RemoveAllListeners(); btn.onClick.AddListener(LoadNextShift); }
             if (btn.name == "InterrogateBtn") { btn.onClick.RemoveAllListeners(); btn.onClick.AddListener(OnInterrogateClicked); }
         }
@@ -957,6 +994,17 @@ public class GameManager : MonoBehaviour
                 int index = i; // capture index
                 qBtns[i].onClick.RemoveAllListeners();
                 qBtns[i].onClick.AddListener(() => AskQuestion(index));
+            }
+        }
+
+        if (phoneButton == null)
+        {
+            GameObject phoneObj = GameObject.Find("PhoneButton");
+            if (phoneObj == null) phoneObj = GameObject.Find("PhoneBtn");
+            if (phoneObj == null) phoneObj = GameObject.Find("Telephone");
+            if (phoneObj != null)
+            {
+                phoneButton = phoneObj.GetComponent<Button>();
             }
         }
 
@@ -1078,6 +1126,14 @@ public class GameManager : MonoBehaviour
         {
             sfxAudioSource.volume = value;
         }
+        if (phoneButton != null)
+        {
+            AudioSource phoneAudio = phoneButton.GetComponent<AudioSource>();
+            if (phoneAudio != null)
+            {
+                phoneAudio.volume = value;
+            }
+        }
     }
     private bool isTypingDialogue = false;
     private string fullDialogueText = "";
@@ -1168,6 +1224,11 @@ public class GameManager : MonoBehaviour
             
             while(isPhoneRinging)
             {
+                if (phoneAudio != null)
+                {
+                    phoneAudio.volume = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
+                }
+                
                 // Проигрываем звук звонка и устанавливаем таймер (длина звука + 1.5 сек тишины)
                 if (ringTimer <= 0f)
                 {
@@ -1207,7 +1268,18 @@ public class GameManager : MonoBehaviour
 
     public void OnPhoneClicked()
     {
-        if (!isPhoneRinging) return;
+        Debug.Log("[GameManager] OnPhoneClicked triggered! isPhoneRinging = " + isPhoneRinging + ", phoneAnswered = " + phoneAnswered + ", currentShiftIndex = " + currentShiftIndex);
+        
+        bool hasMessage = shiftPhoneMessages != null && currentShiftIndex < shiftPhoneMessages.Length && !string.IsNullOrEmpty(shiftPhoneMessages[currentShiftIndex]);
+        
+        // Разрешаем взять трубку, если телефон звонит, ЛИБО если он не звонит, но сообщение есть и оно еще не было прослушано!
+        if (!isPhoneRinging && (!hasMessage || phoneAnswered))
+        {
+            Debug.Log("[GameManager] Взятие трубки отклонено: телефон не звонит и нет непрослушанного сообщения.");
+            return;
+        }
+
+        Debug.Log("[GameManager] Трубка успешно снята!");
         
         isPhoneRinging = false;
         phoneAnswered = true;
@@ -1219,6 +1291,7 @@ public class GameManager : MonoBehaviour
             {
                 phoneAudio.Stop(); // Мгновенно останавливаем звонок
                 
+                phoneAudio.volume = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
                 if (phonePickupSound != null)
                 {
                     phoneAudio.PlayOneShot(phonePickupSound); // Проигрываем звук снятия трубки
@@ -1246,7 +1319,7 @@ public class GameManager : MonoBehaviour
         
         if (typewriterCoroutine != null) StopCoroutine(typewriterCoroutine);
         
-        fullDialogueText = shiftPhoneMessages[currentShiftIndex];
+        fullDialogueText = hasMessage ? shiftPhoneMessages[currentShiftIndex] : "...";
         typewriterCoroutine = StartCoroutine(TypewriterRoutine(fullDialogueText));
     }
 

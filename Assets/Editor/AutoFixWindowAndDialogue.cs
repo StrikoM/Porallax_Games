@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.IO;
 
-// [InitializeOnLoad]
+[InitializeOnLoad]
 public class AutoFixWindowAndDialogue
 {
     static AutoFixWindowAndDialogue()
@@ -41,8 +41,8 @@ public class AutoFixWindowAndDialogue
             Debug.LogError("[Antigravity] Error dumping scene: " + e.Message);
         }
 
-        if (!force && EditorPrefs.GetBool("AutoFixWindowAndDialogue_v17", false)) return;
-        EditorPrefs.SetBool("AutoFixWindowAndDialogue_v17", true);
+        if (!force && EditorPrefs.GetBool("AutoFixWindowAndDialogue_v18", false)) return;
+        EditorPrefs.SetBool("AutoFixWindowAndDialogue_v18", true);
 
         Debug.Log("<color=cyan>[Antigravity] НАЧИНАЮ ПОЛНУЮ НАСТРОЙКУ ОКНА И ДИАЛОГОВОЙ ПАНЕЛИ...</color>");
 
@@ -64,6 +64,29 @@ public class AutoFixWindowAndDialogue
         if (vt323Font == null)
         {
             Debug.LogWarning("[Antigravity] Предупреждение: Шрифт VT323-Regular SDF не найден по пути Assets/Visitors/VT323-Regular SDF.asset!");
+        }
+
+        // Исправляем возможные проблемы импорта встроенного fallback-шрифта TMP
+        string fallbackPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset";
+        if (System.IO.File.Exists(fallbackPath))
+        {
+            AssetDatabase.ImportAsset(fallbackPath, ImportAssetOptions.ForceUpdate);
+        }
+
+        // Добавляем полноценный кириллический шрифт в качестве fallback для пиксельного шрифта
+        TMP_FontAsset defaultFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset");
+        if (vt323Font != null && defaultFont != null)
+        {
+            if (vt323Font.fallbackFontAssetTable == null)
+            {
+                vt323Font.fallbackFontAssetTable = new System.Collections.Generic.List<TMP_FontAsset>();
+            }
+            if (!vt323Font.fallbackFontAssetTable.Contains(defaultFont))
+            {
+                vt323Font.fallbackFontAssetTable.Add(defaultFont);
+                EditorUtility.SetDirty(vt323Font);
+                AssetDatabase.SaveAssets();
+            }
         }
 
         // ==========================================
@@ -275,32 +298,9 @@ public class AutoFixWindowAndDialogue
         {
             phoneObj.name = "PhoneButton";
             phoneObj.SetActive(true);
-            phoneObj.transform.SetParent(canvas.transform, false);
-
-            Image phoneImg = phoneObj.GetComponent<Image>();
-            if (phoneImg != null)
+            if (phoneObj.transform.parent != canvas.transform)
             {
-                Sprite phoneSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Visitors/Phone_GuyCN-removebg-preview.png");
-                if (phoneSprite != null)
-                {
-                    phoneImg.sprite = phoneSprite;
-                    phoneImg.color = Color.white;
-                }
-                else
-                {
-                    phoneImg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
-                }
-            }
-
-            RectTransform rt = phoneObj.GetComponent<RectTransform>();
-            if (rt != null)
-            {
-                rt.anchorMin = new Vector2(0f, 0f);
-                rt.anchorMax = new Vector2(0f, 0f);
-                rt.pivot = new Vector2(0f, 0f);
-                rt.anchoredPosition3D = new Vector3(60f, 40f, 0f); // Слева внизу на столе, Z = 0
-                rt.sizeDelta = new Vector2(250f, 180f);
-                rt.localScale = Vector3.one;
+                phoneObj.transform.SetParent(canvas.transform, true);
             }
         }
 
@@ -311,15 +311,32 @@ public class AutoFixWindowAndDialogue
             // --- РЕПОЗИЦИОНИРОВАНИЕ И СТИЛИЗАЦИЯ ПАСПОРТНЫХ ДАННЫХ (на левую сторону папки) ---
             string[] passportFieldNames = new string[] { "PassportName", "PassportLastNameText", "PassportID", "PassportExpDateText", "PassportEyes" };
             Vector3[] passportPositions = new Vector3[] {
-                new Vector3(-110f, 95f, 0f),   // PassportName (Имя)
-                new Vector3(-110f, 50f, 0f),   // PassportLastNameText (Фамилия)
-                new Vector3(-110f, 5f, 0f),    // PassportID
-                new Vector3(-110f, -40f, 0f),  // PassportExpDateText
-                new Vector3(-110f, -85f, 0f)   // PassportEyes
+                new Vector3(80f, 40f, 0f),    // PassportName (Имя) - Поднимаем на линию GIVEN NAMES (было 15)
+                new Vector3(80f, 90f, 0f),    // PassportLastNameText (Фамилия) - Поднимаем на линию SURNAME (было 65)
+                new Vector3(80f, -10f, 0f),   // PassportID - Поднимаем на третью строчку (было -30)
+                new Vector3(140f, -110f, 0f), // PassportExpDateText - Опускаем точно в рамку EXPIRY DATE (было -85)
+                new Vector3(-20f, -110f, 0f)  // PassportEyes - Опускаем точно в рамку EYE COLOR (было -85)
             };
 
             for (int i = 0; i < passportFieldNames.Length; i++)
             {
+                // Принудительно ищем объекты по всей сцене (даже в корне иерархии!) и возвращаем их внутрь DocumentTray!
+                GameObject fieldObj = GameObject.Find(passportFieldNames[i]);
+                if (fieldObj != null)
+                {
+                    RectTransform looseRt = fieldObj.GetComponent<RectTransform>();
+                    if (looseRt != null)
+                    {
+                        // Сохраняем мировую позицию при перепривязке родителя, чтобы координаты не сбивались!
+                        fieldObj.transform.SetParent(trayContainer.transform, true);
+                        passportPositions[i] = looseRt.anchoredPosition3D;
+                    }
+                    else
+                    {
+                        fieldObj.transform.SetParent(trayContainer.transform, false);
+                    }
+                }
+
                 Transform fieldTr = trayContainer.transform.Find(passportFieldNames[i]);
                 if (fieldTr != null)
                 {
@@ -330,7 +347,7 @@ public class AutoFixWindowAndDialogue
                         fieldRt.anchorMax = new Vector2(0.5f, 0.5f);
                         fieldRt.pivot = new Vector2(0.5f, 0.5f);
                         fieldRt.anchoredPosition3D = passportPositions[i];
-                        fieldRt.sizeDelta = new Vector2(250f, 40f);
+                        fieldRt.sizeDelta = new Vector2(200f, 40f); // Ограничиваем ширину, чтобы текст не вылезал за границы
                         fieldRt.localScale = Vector3.one;
                     }
 
@@ -338,327 +355,438 @@ public class AutoFixWindowAndDialogue
                     if (fieldTmp != null)
                     {
                         if (vt323Font != null) fieldTmp.font = vt323Font;
-                        fieldTmp.fontSize = 20;
-                        fieldTmp.color = new Color(0.18f, 0.15f, 0.12f); // Красивые темно-коричневые ретро-чернила
+                        fieldTmp.fontSize = 28; // Делаем размер больше (было 22)
+                        fieldTmp.fontStyle = FontStyles.Bold; // Делаем текст жирным для четкости
+                        fieldTmp.color = new Color(0.04f, 0.04f, 0.04f, 1f); // Насыщенный угольно-черный цвет чернил
                         fieldTmp.alignment = TextAlignmentOptions.Left;
                     }
                 }
             }
 
-            // --- СОЗДАНИЕ ВЫДЕЛЕННОГО ВЪЕЗДНОГО ТАЛОНА (на правую сторону папки) ---
-            Transform oldSlip = trayContainer.transform.Find("AccessSlip");
-            if (oldSlip != null) Object.DestroyImmediate(oldSlip.gameObject);
-
-            accessSlip = new GameObject("AccessSlip");
-            accessSlip.transform.SetParent(trayContainer.transform, false);
-
-            RectTransform slipRt = accessSlip.AddComponent<RectTransform>();
-            slipRt.anchorMin = new Vector2(0.5f, 0.5f);
-            slipRt.anchorMax = new Vector2(0.5f, 0.5f);
-            slipRt.pivot = new Vector2(0.5f, 0.5f);
-            slipRt.anchoredPosition3D = new Vector3(160f, 0f, 0f); // Справа на папке
-            slipRt.sizeDelta = new Vector2(240f, 310f); // Компактный вертикальный бланк
-            slipRt.localScale = Vector3.one;
-
-            Image slipImg = accessSlip.AddComponent<Image>();
-            // Процедурная текстура ретро-бумаги (теплый бежевый крем) с серой картонной каемкой
-            Texture2D slipTex = new Texture2D(240, 310);
-            slipTex.filterMode = FilterMode.Point;
-            for (int y = 0; y < 310; y++)
+            // --- ПРЕСЕРВАЦИЯ И НАСТРОЙКА ВЪЕЗДНОГО ТАЛОНА (ПОЛНОСТЬЮ IN-PLACE) ---
+            Transform slipTr = null;
+            foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
             {
-                for (int x = 0; x < 240; x++)
+                if (t.name == "AccessSlip")
                 {
-                    Color c = new Color(0.96f, 0.93f, 0.85f); // Теплый кремовый беж
-                    // Легкий шум волокон бумаги для реализма
-                    if ((x + y) % 29 == 0 || (x - y) % 31 == 0) c *= 0.98f;
-                    
-                    // Темная рамка бланка
-                    if (x < 3 || x > 236 || y < 3 || y > 306)
-                    {
-                        c = new Color(0.38f, 0.35f, 0.3f);
-                    }
-                    slipTex.SetPixel(x, y, c);
+                    slipTr = t;
+                    break;
                 }
             }
-            slipTex.Apply();
-            slipImg.sprite = Sprite.Create(slipTex, new Rect(0, 0, 240, 310), new Vector2(0.5f, 0.5f));
-            slipImg.color = Color.white;
+            accessSlip = slipTr != null ? slipTr.gameObject : null;
 
-            // Тень талона для визуального отделения от папки
-            Outline slipOutline = accessSlip.AddComponent<Outline>();
-            slipOutline.effectColor = new Color(0.1f, 0.08f, 0.05f, 0.3f);
-            slipOutline.effectDistance = new Vector2(2f, -3f);
-
-            // Заголовок "ВЪЕЗДНОЙ ТАЛОН"
-            GameObject slipTitle = new GameObject("Title");
-            slipTitle.transform.SetParent(accessSlip.transform, false);
-            RectTransform slipTitleRt = slipTitle.AddComponent<RectTransform>();
-            slipTitleRt.anchorMin = new Vector2(0f, 1f);
-            slipTitleRt.anchorMax = new Vector2(1f, 1f);
-            slipTitleRt.pivot = new Vector2(0.5f, 1f);
-            slipTitleRt.anchoredPosition3D = new Vector3(0f, -15f, 0f);
-            slipTitleRt.sizeDelta = new Vector2(-10f, 30f);
-            slipTitleRt.localScale = Vector3.one;
-
-            TextMeshProUGUI titleTxt = slipTitle.AddComponent<TextMeshProUGUI>();
-            titleTxt.text = "ВЪЕЗДНОЙ ТАЛОН";
-            if (vt323Font != null) titleTxt.font = vt323Font;
-            titleTxt.fontSize = 24;
-            titleTxt.fontStyle = FontStyles.Bold;
-            titleTxt.alignment = TextAlignmentOptions.Center;
-            titleTxt.color = new Color(0.2f, 0.18f, 0.15f);
-
-            // Департамент
-            GameObject slipSubtitle = new GameObject("Subtitle");
-            slipSubtitle.transform.SetParent(accessSlip.transform, false);
-            RectTransform subRt = slipSubtitle.AddComponent<RectTransform>();
-            subRt.anchorMin = new Vector2(0f, 1f);
-            subRt.anchorMax = new Vector2(1f, 1f);
-            subRt.pivot = new Vector2(0.5f, 1f);
-            subRt.anchoredPosition3D = new Vector3(0f, -42f, 0f);
-            subRt.sizeDelta = new Vector2(-10f, 20f);
-            subRt.localScale = Vector3.one;
-
-            TextMeshProUGUI subTxt = slipSubtitle.AddComponent<TextMeshProUGUI>();
-            subTxt.text = "ДЕПАРТАМЕНТ КОНТРОЛЯ";
-            if (vt323Font != null) subTxt.font = vt323Font;
-            subTxt.fontSize = 13;
-            subTxt.fontStyle = FontStyles.Normal;
-            subTxt.alignment = TextAlignmentOptions.Center;
-            subTxt.color = new Color(0.4f, 0.38f, 0.35f);
-
-            // Линия-разделитель
-            GameObject slipLine = new GameObject("Line");
-            slipLine.transform.SetParent(accessSlip.transform, false);
-            RectTransform slipLineRt = slipLine.AddComponent<RectTransform>();
-            slipLineRt.anchorMin = new Vector2(0.1f, 1f);
-            slipLineRt.anchorMax = new Vector2(0.9f, 1f);
-            slipLineRt.anchoredPosition3D = new Vector3(0f, -60f, 0f);
-            slipLineRt.sizeDelta = new Vector2(0f, 2f);
-            slipLineRt.localScale = Vector3.one;
-            Image slipLineImg = slipLine.AddComponent<Image>();
-            slipLineImg.color = new Color(0.35f, 0.32f, 0.28f, 0.4f);
-
-            // Декоративная плашка статуса решения
-            GameObject statusText = new GameObject("StatusText");
-            statusText.transform.SetParent(accessSlip.transform, false);
-            RectTransform statusRt = statusText.AddComponent<RectTransform>();
-            statusRt.anchorMin = new Vector2(0f, 1f);
-            statusRt.anchorMax = new Vector2(1f, 1f);
-            statusRt.pivot = new Vector2(0.5f, 1f);
-            statusRt.anchoredPosition3D = new Vector3(15f, -80f, 0f);
-            statusRt.sizeDelta = new Vector2(-30f, 30f);
-            statusRt.localScale = Vector3.one;
-
-            TextMeshProUGUI statTxt = statusText.AddComponent<TextMeshProUGUI>();
-            statTxt.text = "РЕШЕНИЕ:";
-            if (vt323Font != null) statTxt.font = vt323Font;
-            statTxt.fontSize = 18;
-            statTxt.fontStyle = FontStyles.Bold;
-            statTxt.alignment = TextAlignmentOptions.Left;
-            statTxt.color = new Color(0.25f, 0.22f, 0.18f);
-
-            // --- ЗОНА "МЕСТО ДЛЯ ПЕЧАТИ" (С пунктирной границей) ---
-            GameObject stampArea = new GameObject("StampAreaBox");
-            stampArea.transform.SetParent(accessSlip.transform, false);
-
-            RectTransform areaRt = stampArea.AddComponent<RectTransform>();
-            areaRt.anchorMin = new Vector2(0.5f, 0.5f);
-            areaRt.anchorMax = new Vector2(0.5f, 0.5f);
-            areaRt.pivot = new Vector2(0.5f, 0.5f);
-            areaRt.anchoredPosition3D = new Vector3(0f, -45f, 0f); // По центру нижней части талона
-            areaRt.sizeDelta = new Vector2(200f, 100f);
-            areaRt.localScale = Vector3.one;
-
-            Image areaImg = stampArea.AddComponent<Image>();
-            // Пунктирная текстура рамки
-            Texture2D areaTex = new Texture2D(200, 100);
-            areaTex.filterMode = FilterMode.Point;
-            for (int y = 0; y < 100; y++)
+            if (accessSlip == null)
             {
-                for (int x = 0; x < 200; x++)
+                // Если талона вообще нет на сцене, создаем его с нуля по умолчанию
+                accessSlip = new GameObject("AccessSlip");
+                accessSlip.transform.SetParent(trayContainer.transform, false);
+
+                RectTransform slipRt = accessSlip.AddComponent<RectTransform>();
+                slipRt.anchorMin = new Vector2(0.5f, 0.5f);
+                slipRt.anchorMax = new Vector2(0.5f, 0.5f);
+                slipRt.pivot = new Vector2(0.5f, 0.5f);
+                slipRt.anchoredPosition3D = new Vector3(160f, 0f, 0f); // Справа на папке
+                slipRt.sizeDelta = new Vector2(240f, 310f);
+                slipRt.localScale = Vector3.one;
+
+                Image slipImg = accessSlip.AddComponent<Image>();
+                Texture2D slipTex = new Texture2D(240, 310);
+                slipTex.filterMode = FilterMode.Point;
+                for (int y = 0; y < 310; y++)
                 {
-                    Color c = Color.clear;
-                    bool isBorder = (x < 2 || x > 197 || y < 2 || y > 97);
-                    if (isBorder)
+                    for (int x = 0; x < 240; x++)
                     {
-                        // Рисуем пунктир: пропускаем пиксели по сетке
-                        if ((x / 6) % 2 == 0 && (y / 6) % 2 == 0)
+                        Color c = new Color(0.96f, 0.94f, 0.88f); // Теплый пергамент
+                        bool isBorder = (x < 4 || x > 235 || y < 4 || y > 305);
+                        if (isBorder)
                         {
-                            c = new Color(0.42f, 0.38f, 0.35f, 0.6f);
+                            c = new Color(0.38f, 0.35f, 0.3f);
                         }
+                        slipTex.SetPixel(x, y, c);
                     }
-                    areaTex.SetPixel(x, y, c);
+                }
+                slipTex.Apply();
+                slipImg.sprite = Sprite.Create(slipTex, new Rect(0, 0, 240, 310), new Vector2(0.5f, 0.5f));
+                slipImg.color = Color.white;
+
+                // Тень талона
+                Outline slipOutline = accessSlip.AddComponent<Outline>();
+                slipOutline.effectColor = new Color(0.1f, 0.08f, 0.05f, 0.3f);
+                slipOutline.effectDistance = new Vector2(2f, -3f);
+
+                // Создаем стандартные процедурные элементы (поскольку талона не было на сцене)
+                
+                // 1. Заголовок "ВЪЕЗДНОЙ ТАЛОН"
+                GameObject slipTitle = new GameObject("Title");
+                slipTitle.transform.SetParent(accessSlip.transform, false);
+                RectTransform newTitleRt = slipTitle.AddComponent<RectTransform>();
+                newTitleRt.anchorMin = new Vector2(0f, 1f);
+                newTitleRt.anchorMax = new Vector2(1f, 1f);
+                newTitleRt.pivot = new Vector2(0.5f, 1f);
+                newTitleRt.anchoredPosition3D = new Vector3(0f, -15f, 0f);
+                newTitleRt.sizeDelta = new Vector2(-10f, 30f);
+                newTitleRt.localScale = Vector3.one;
+
+                TextMeshProUGUI titleTxtComp = slipTitle.AddComponent<TextMeshProUGUI>();
+                titleTxtComp.text = "ВЪЕЗДНОЙ ТАЛОН";
+                if (vt323Font != null) titleTxtComp.font = vt323Font;
+                titleTxtComp.fontSize = 24;
+                titleTxtComp.alignment = TextAlignmentOptions.Center;
+                titleTxtComp.color = new Color(0.2f, 0.18f, 0.15f);
+
+                // 2. Департамент
+                GameObject slipSubtitle = new GameObject("Subtitle");
+                slipSubtitle.transform.SetParent(accessSlip.transform, false);
+                RectTransform newSubRt = slipSubtitle.AddComponent<RectTransform>();
+                newSubRt.anchorMin = new Vector2(0f, 1f);
+                newSubRt.anchorMax = new Vector2(1f, 1f);
+                newSubRt.pivot = new Vector2(0.5f, 1f);
+                newSubRt.anchoredPosition3D = new Vector3(0f, -42f, 0f);
+                newSubRt.sizeDelta = new Vector2(-10f, 20f);
+                newSubRt.localScale = Vector3.one;
+
+                TextMeshProUGUI subTxtComp = slipSubtitle.AddComponent<TextMeshProUGUI>();
+                subTxtComp.text = "ДЕПАРТАМЕНТ КОНТРОЛЯ";
+                if (vt323Font != null) subTxtComp.font = vt323Font;
+                subTxtComp.fontSize = 13;
+                subTxtComp.alignment = TextAlignmentOptions.Center;
+                subTxtComp.color = new Color(0.4f, 0.38f, 0.35f);
+
+                // 3. Линия-разделитель
+                GameObject slipLine = new GameObject("Line");
+                slipLine.transform.SetParent(accessSlip.transform, false);
+                RectTransform newLineRt = slipLine.AddComponent<RectTransform>();
+                newLineRt.anchorMin = new Vector2(0.1f, 1f);
+                newLineRt.anchorMax = new Vector2(0.9f, 1f);
+                newLineRt.anchoredPosition3D = new Vector3(0f, -60f, 0f);
+                newLineRt.sizeDelta = new Vector2(0f, 2f);
+                newLineRt.localScale = Vector3.one;
+                Image lineImgComp = slipLine.AddComponent<Image>();
+                lineImgComp.color = new Color(0.35f, 0.32f, 0.28f, 0.4f);
+
+                // 4. Плашка статуса решения
+                GameObject statusText = new GameObject("StatusText");
+                statusText.transform.SetParent(accessSlip.transform, false);
+                RectTransform newStatusRt = statusText.AddComponent<RectTransform>();
+                newStatusRt.anchorMin = new Vector2(0f, 1f);
+                newStatusRt.anchorMax = new Vector2(1f, 1f);
+                newStatusRt.pivot = new Vector2(0.5f, 1f);
+                newStatusRt.anchoredPosition3D = new Vector3(0f, -80f, 0f);
+                newStatusRt.sizeDelta = new Vector2(-20f, 40f);
+                newStatusRt.localScale = Vector3.one;
+
+                TextMeshProUGUI statusTxtComp = statusText.AddComponent<TextMeshProUGUI>();
+                statusTxtComp.text = "РЕШЕНИЕ:";
+                if (vt323Font != null) statusTxtComp.font = vt323Font;
+                statusTxtComp.fontSize = 24;
+                statusTxtComp.alignment = TextAlignmentOptions.Center;
+                statusTxtComp.color = new Color(0.25f, 0.22f, 0.18f);
+
+                // 5. Зона "МЕСТО ДЛЯ ПЕЧАТИ"
+                GameObject stampArea = new GameObject("StampAreaBox");
+                stampArea.transform.SetParent(accessSlip.transform, false);
+                RectTransform newAreaRt = stampArea.AddComponent<RectTransform>();
+                newAreaRt.anchorMin = new Vector2(0.5f, 0.5f);
+                newAreaRt.anchorMax = new Vector2(0.5f, 0.5f);
+                newAreaRt.pivot = new Vector2(0.5f, 0.5f);
+                newAreaRt.anchoredPosition3D = new Vector3(0f, -40f, 0f);
+                newAreaRt.sizeDelta = new Vector2(200f, 100f);
+                newAreaRt.localScale = Vector3.one;
+
+                Image areaImg = stampArea.AddComponent<Image>();
+                Texture2D areaTex = new Texture2D(200, 100);
+                areaTex.filterMode = FilterMode.Point;
+                for (int y = 0; y < 100; y++)
+                {
+                    for (int x = 0; x < 200; x++)
+                    {
+                        Color c = Color.clear;
+                        bool isBorder = (x < 2 || x > 197 || y < 2 || y > 97);
+                        if (isBorder)
+                        {
+                            if ((x / 6) % 2 == 0 && (y / 6) % 2 == 0)
+                            {
+                                c = new Color(0.42f, 0.38f, 0.35f, 0.6f);
+                            }
+                        }
+                        areaTex.SetPixel(x, y, c);
+                    }
+                }
+                areaTex.Apply();
+                areaImg.sprite = Sprite.Create(areaTex, new Rect(0, 0, 200, 100), new Vector2(0.5f, 0.5f));
+                areaImg.color = Color.white;
+
+                // 6. Текст внутри "МЕСТО ДЛЯ ПЕЧАТИ"
+                GameObject areaTxtObj = new GameObject("Label");
+                areaTxtObj.transform.SetParent(stampArea.transform, false);
+                RectTransform newLabelRt = areaTxtObj.AddComponent<RectTransform>();
+                newLabelRt.anchorMin = Vector2.zero;
+                newLabelRt.anchorMax = Vector2.one;
+                newLabelRt.offsetMin = Vector2.zero;
+                newLabelRt.offsetMax = Vector2.zero;
+                newLabelRt.localScale = Vector3.one;
+
+                TextMeshProUGUI areaTxt = areaTxtObj.AddComponent<TextMeshProUGUI>();
+                areaTxt.text = "МЕСТО ДЛЯ ПЕЧАТИ\n(STAMP AREA)";
+                if (vt323Font != null) areaTxt.font = vt323Font;
+                areaTxt.fontSize = 16;
+                areaTxt.alignment = TextAlignmentOptions.Center;
+                areaTxt.color = new Color(0.42f, 0.38f, 0.35f, 0.65f);
+                areaTxt.lineSpacing = -5f;
+            }
+            else
+            {
+                // Если талон существует, мы НЕ ТРОГАЕМ его вообще, сохраняя все ручные изменения пользователя (цвет, размер, спрайт)!
+                if (accessSlip.transform.parent != trayContainer.transform && accessSlip.transform.parent?.name != "Canvas")
+                {
+                    accessSlip.transform.SetParent(trayContainer.transform, true);
                 }
             }
-            areaTex.Apply();
-            areaImg.sprite = Sprite.Create(areaTex, new Rect(0, 0, 200, 100), new Vector2(0.5f, 0.5f));
-            areaImg.color = Color.white;
-
-            // Текст внутри пунктирной рамки "МЕСТО ДЛЯ ПЕЧАТИ"
-            GameObject areaTxtObj = new GameObject("Label");
-            areaTxtObj.transform.SetParent(stampArea.transform, false);
-            RectTransform areaTxtRt = areaTxtObj.AddComponent<RectTransform>();
-            areaTxtRt.anchorMin = Vector2.zero;
-            areaTxtRt.anchorMax = Vector2.one;
-            areaTxtRt.offsetMin = Vector2.zero;
-            areaTxtRt.offsetMax = Vector2.zero;
-            areaTxtRt.localScale = Vector3.one;
-
-            TextMeshProUGUI areaTxt = areaTxtObj.AddComponent<TextMeshProUGUI>();
-            areaTxt.text = "МЕСТО ДЛЯ ПЕЧАТИ\n(STAMP AREA)";
-            if (vt323Font != null) areaTxt.font = vt323Font;
-            areaTxt.fontSize = 16;
-            areaTxt.fontStyle = FontStyles.Normal;
-            areaTxt.alignment = TextAlignmentOptions.Center;
-            areaTxt.color = new Color(0.42f, 0.38f, 0.35f, 0.65f);
-            areaTxt.lineSpacing = -5f;
         }
 
-        GameObject stampDrawer = GameObject.Find("StampDrawer");
-        if (stampDrawer != null) Object.DestroyImmediate(stampDrawer);
-
-        stampDrawer = new GameObject("StampDrawer");
-        stampDrawer.transform.SetParent(canvas.transform, false);
-
-        RectTransform drawerRt = stampDrawer.AddComponent<RectTransform>();
-        drawerRt.anchorMin = new Vector2(0.5f, 0.5f);
-        drawerRt.anchorMax = new Vector2(0.5f, 0.5f);
-        drawerRt.pivot = new Vector2(0.5f, 0.0f);
-        drawerRt.anchoredPosition3D = new Vector3(520f, -485f, 0f); // Скрыт за столом по умолчанию
-        drawerRt.sizeDelta = new Vector2(340f, 200f);
-        drawerRt.localScale = Vector3.one;
-
-        Image drawerImg = stampDrawer.AddComponent<Image>();
-        // Процедурная текстура ящика (темное дерево с заклепками)
-        Texture2D drawerTex = new Texture2D(340, 200);
-        drawerTex.filterMode = FilterMode.Point;
-        for (int y = 0; y < 200; y++)
+        // --- НАСТРОЙКА ШКАФЧИКА ШТАМПОВ (В ПОЛНОСТЬЮ IN-PLACE) ---
+        Transform drawerTr = canvas.transform.Find("StampDrawer");
+        if (drawerTr == null)
         {
-            for (int x = 0; x < 340; x++)
+            foreach (GameObject go in Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include))
             {
-                Color c = new Color(0.18f, 0.12f, 0.08f); // Темное дерево
-                if (x < 6 || x > 333 || y < 6 || y > 193) c *= 0.6f; // Темная каемка
-                else if (x % 32 == 0 || y % 32 == 0) c *= 0.85f; // Волокны дерева
-                drawerTex.SetPixel(x, y, c);
+                if (go.name == "StampDrawer") { drawerTr = go.transform; break; }
             }
         }
-        drawerTex.Apply();
-        drawerImg.sprite = Sprite.Create(drawerTex, new Rect(0, 0, 340, 200), new Vector2(0.5f, 0.5f));
-        drawerImg.color = Color.white;
+        GameObject stampDrawer = drawerTr != null ? drawerTr.gameObject : null;
 
-        // Добавляем рамку
-        Outline drawerOutline = stampDrawer.AddComponent<Outline>();
-        drawerOutline.effectColor = new Color(0.1f, 0.07f, 0.05f, 0.8f);
-        drawerOutline.effectDistance = new Vector2(3f, -3f);
-
-        // Создаем ручку выдвижения (DrawerHandle)
-        GameObject handleObj = new GameObject("DrawerHandle");
-        handleObj.transform.SetParent(stampDrawer.transform, false);
-
-        RectTransform handleRt = handleObj.AddComponent<RectTransform>();
-        handleRt.anchorMin = new Vector2(0.5f, 1f);
-        handleRt.anchorMax = new Vector2(0.5f, 1f);
-        handleRt.pivot = new Vector2(0.5f, 0f);
-        handleRt.anchoredPosition3D = new Vector3(0f, -2f, 0f); // Слегка выглядывает из стола
-        handleRt.sizeDelta = new Vector2(180f, 40f);
-        handleRt.localScale = Vector3.one;
-
-        Image handleImg = handleObj.AddComponent<Image>();
-        // Текстура ручки (полированная медь/металл)
-        Texture2D handleTex = new Texture2D(180, 40);
-        handleTex.filterMode = FilterMode.Point;
-        for (int y = 0; y < 40; y++)
+        if (stampDrawer == null)
         {
-            for (int x = 0; x < 180; x++)
+            stampDrawer = new GameObject("StampDrawer");
+            stampDrawer.transform.SetParent(canvas.transform, false);
+            RectTransform drawerRt = stampDrawer.AddComponent<RectTransform>();
+            drawerRt.anchorMin = new Vector2(0.5f, 0.5f);
+            drawerRt.anchorMax = new Vector2(0.5f, 0.5f);
+            drawerRt.pivot = new Vector2(0.5f, 0.0f);
+            drawerRt.anchoredPosition3D = new Vector3(520f, -485f, 0f);
+            drawerRt.sizeDelta = new Vector2(340f, 200f);
+            drawerRt.localScale = Vector3.one;
+        }
+
+        RectTransform drawerRtComp = stampDrawer.GetComponent<RectTransform>();
+        Image drawerImgComp = stampDrawer.GetComponent<Image>();
+        if (drawerImgComp == null)
+        {
+            drawerImgComp = stampDrawer.AddComponent<Image>();
+            Texture2D drawerTex = new Texture2D(340, 200);
+            drawerTex.filterMode = FilterMode.Point;
+            for (int y = 0; y < 200; y++)
             {
-                Color c = new Color(0.45f, 0.35f, 0.15f); // Состаренная латунь
-                if (x < 3 || x > 176 || y < 3 || y > 36) c *= 0.5f;
-                else if (y > 30) c *= 1.3f; // Блик сверху
-                handleTex.SetPixel(x, y, c);
+                for (int x = 0; x < 340; x++)
+                {
+                    Color c = new Color(0.18f, 0.12f, 0.08f); // Темное дерево
+                    if (x < 6 || x > 333 || y < 6 || y > 193) c *= 0.6f;
+                    else if (x % 32 == 0 || y % 32 == 0) c *= 0.85f;
+                    drawerTex.SetPixel(x, y, c);
+                }
+            }
+            drawerTex.Apply();
+            drawerImgComp.sprite = Sprite.Create(drawerTex, new Rect(0, 0, 340, 200), new Vector2(0.5f, 0.5f));
+            drawerImgComp.color = Color.white;
+        }
+
+        Outline drawerOutlineComp = stampDrawer.GetComponent<Outline>();
+        if (drawerOutlineComp == null)
+        {
+            drawerOutlineComp = stampDrawer.AddComponent<Outline>();
+            drawerOutlineComp.effectColor = new Color(0.1f, 0.07f, 0.05f, 0.8f);
+            drawerOutlineComp.effectDistance = new Vector2(3f, -3f);
+        }
+
+        // Ручка выдвижения (DrawerHandle)
+        Transform handleTr = stampDrawer.transform.Find("DrawerHandle");
+        GameObject handleObj = handleTr != null ? handleTr.gameObject : null;
+        if (handleObj == null)
+        {
+            handleObj = new GameObject("DrawerHandle");
+            handleObj.transform.SetParent(stampDrawer.transform, false);
+            RectTransform rt = handleObj.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition3D = new Vector3(0f, -2f, 0f);
+            rt.sizeDelta = new Vector2(180f, 40f);
+            rt.localScale = Vector3.one;
+
+            Image handleImg = handleObj.AddComponent<Image>();
+            Texture2D handleTex = new Texture2D(180, 40);
+            handleTex.filterMode = FilterMode.Point;
+            for (int y = 0; y < 40; y++)
+            {
+                for (int x = 0; x < 180; x++)
+                {
+                    Color c = new Color(0.45f, 0.35f, 0.15f);
+                    if (x < 3 || x > 176 || y < 3 || y > 36) c *= 0.5f;
+                    else if (y > 30) c *= 1.3f;
+                    handleTex.SetPixel(x, y, c);
+                }
+            }
+            handleTex.Apply();
+            handleImg.sprite = Sprite.Create(handleTex, new Rect(0, 0, 180, 40), new Vector2(0.5f, 0.5f));
+            handleImg.color = Color.white;
+            handleObj.AddComponent<Button>();
+
+            GameObject handleTxtObj = new GameObject("Text");
+            handleTxtObj.transform.SetParent(handleObj.transform, false);
+            RectTransform txtRt = handleTxtObj.AddComponent<RectTransform>();
+            txtRt.anchorMin = Vector2.zero;
+            txtRt.anchorMax = Vector2.one;
+            txtRt.offsetMin = Vector2.zero;
+            txtRt.offsetMax = Vector2.zero;
+            txtRt.localScale = Vector3.one;
+
+            TextMeshProUGUI handleTxt = handleTxtObj.AddComponent<TextMeshProUGUI>();
+            handleTxt.text = "ШТАМПЫ";
+            if (vt323Font != null) handleTxt.font = vt323Font;
+            handleTxt.fontSize = 22;
+            handleTxt.fontStyle = FontStyles.Bold;
+            handleTxt.alignment = TextAlignmentOptions.Center;
+            handleTxt.color = new Color(0.12f, 0.08f, 0.05f, 1f);
+        }
+
+        // Уничтожаем старый красный штамп и его слот
+        GameObject oldRejectSlot = GameObject.Find("Slot_Reject");
+        if (oldRejectSlot != null) Object.DestroyImmediate(oldRejectSlot);
+        GameObject oldRejectStamp = GameObject.Find("StampTool_Reject");
+        if (oldRejectStamp != null) Object.DestroyImmediate(oldRejectStamp);
+
+        // Зеленый слот APPROVED СТРОГО ПО ЦЕНТРУ ящика!
+        Transform slotApproveTr = stampDrawer.transform.Find("Slot_Approve");
+        GameObject slotApprove = slotApproveTr != null ? slotApproveTr.gameObject : null;
+        if (slotApprove == null)
+        {
+            slotApprove = new GameObject("Slot_Approve");
+            slotApprove.transform.SetParent(stampDrawer.transform, false);
+            RectTransform rt = slotApprove.AddComponent<RectTransform>();
+            rt.anchoredPosition3D = new Vector3(0f, -20f, 0f);
+            rt.sizeDelta = new Vector2(120f, 120f);
+            rt.localScale = Vector3.one;
+        }
+
+        Transform stampApproveTr = slotApprove.transform.Find("StampTool_Approve");
+        if (stampApproveTr == null) stampApproveTr = canvas.transform.Find("StampTool_Approve");
+        if (stampApproveTr == null)
+        {
+            foreach (GameObject go in Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include))
+            {
+                if (go.name == "StampTool_Approve") { stampApproveTr = go.transform; break; }
             }
         }
-        handleTex.Apply();
-        handleImg.sprite = Sprite.Create(handleTex, new Rect(0, 0, 180, 40), new Vector2(0.5f, 0.5f));
-        handleImg.color = Color.white;
-        handleObj.AddComponent<Button>();
+        GameObject stampApprove = stampApproveTr != null ? stampApproveTr.gameObject : null;
 
-        // Текст на ручке "ШТАМПЫ"
-        GameObject handleTxtObj = new GameObject("Text");
-        handleTxtObj.transform.SetParent(handleObj.transform, false);
-        RectTransform handleTxtRt = handleTxtObj.AddComponent<RectTransform>();
-        handleTxtRt.anchorMin = Vector2.zero;
-        handleTxtRt.anchorMax = Vector2.one;
-        handleTxtRt.offsetMin = Vector2.zero;
-        handleTxtRt.offsetMax = Vector2.zero;
-        handleTxtRt.localScale = Vector3.one;
+        if (stampApprove == null)
+        {
+            stampApprove = new GameObject("StampTool_Approve");
+            stampApprove.transform.SetParent(slotApprove.transform, false);
+            RectTransform rt = stampApprove.AddComponent<RectTransform>();
+            rt.anchoredPosition3D = Vector3.zero;
+            rt.sizeDelta = new Vector2(100f, 100f);
+            rt.localScale = Vector3.one;
 
-        TextMeshProUGUI handleTxt = handleTxtObj.AddComponent<TextMeshProUGUI>();
-        handleTxt.text = "ШТАМПЫ";
-        if (vt323Font != null) handleTxt.font = vt323Font;
-        handleTxt.fontSize = 22;
-        handleTxt.fontStyle = FontStyles.Bold;
-        handleTxt.alignment = TextAlignmentOptions.Center;
-        handleTxt.color = new Color(0.12f, 0.08f, 0.05f, 1f);
+            Image img = stampApprove.AddComponent<Image>();
+            Texture2D tex = CreateStampPixelTexture(100, 100, new Color(0.15f, 0.65f, 0.2f));
+            img.sprite = Sprite.Create(tex, new Rect(0, 0, 100, 100), new Vector2(0.5f, 0.5f));
+            img.color = Color.white;
+        }
+        else
+        {
+            if (stampApprove.transform.parent != slotApprove.transform)
+            {
+                stampApprove.transform.SetParent(slotApprove.transform, false);
+                RectTransform rt = stampApprove.GetComponent<RectTransform>();
+                if (rt != null) rt.anchoredPosition3D = Vector3.zero;
+            }
+        }
 
-        // Создаем два посадочных места (контейнера) для штампов внутри ящика
-        GameObject slotApprove = new GameObject("Slot_Approve");
-        slotApprove.transform.SetParent(stampDrawer.transform, false);
-        RectTransform slotApproveRt = slotApprove.AddComponent<RectTransform>();
-        slotApproveRt.anchoredPosition3D = new Vector3(-80f, -20f, 0f);
-        slotApproveRt.sizeDelta = new Vector2(120f, 120f);
-        slotApproveRt.localScale = Vector3.one;
-
-        GameObject slotReject = new GameObject("Slot_Reject");
-        slotReject.transform.SetParent(stampDrawer.transform, false);
-        RectTransform slotRejectRt = slotReject.AddComponent<RectTransform>();
-        slotRejectRt.anchoredPosition3D = new Vector3(80f, -20f, 0f);
-        slotRejectRt.sizeDelta = new Vector2(120f, 120f);
-        slotRejectRt.localScale = Vector3.one;
-
-        // 1. Создаем штамп APPROVED
-        GameObject stampApprove = new GameObject("StampTool_Approve");
-        stampApprove.transform.SetParent(slotApprove.transform, false);
-        RectTransform stampApproveRt = stampApprove.AddComponent<RectTransform>();
-        stampApproveRt.anchoredPosition3D = Vector3.zero;
-        stampApproveRt.sizeDelta = new Vector2(100f, 100f);
-        stampApproveRt.localScale = Vector3.one;
-
-        Image stampApproveImg = stampApprove.AddComponent<Image>();
-        Texture2D stampApproveTex = CreateStampPixelTexture(100, 100, new Color(0.15f, 0.65f, 0.2f));
-        stampApproveImg.sprite = Sprite.Create(stampApproveTex, new Rect(0, 0, 100, 100), new Vector2(0.5f, 0.5f));
-        stampApproveImg.color = Color.white;
-
-        GrabbableStamp grApprove = stampApprove.AddComponent<GrabbableStamp>();
+        GrabbableStamp grApprove = stampApprove.GetComponent<GrabbableStamp>();
+        if (grApprove == null) grApprove = stampApprove.AddComponent<GrabbableStamp>();
         grApprove.isApproveStamp = true;
         grApprove.slotAnchoredPosition = Vector2.zero;
         grApprove.vt323Font = vt323Font;
         if (accessSlip != null) grApprove.passportArea = accessSlip.GetComponent<RectTransform>();
         else if (trayContainer != null) grApprove.passportArea = trayContainer.GetComponent<RectTransform>();
 
-        // 2. Создаем штамп REJECT
-        GameObject stampReject = new GameObject("StampTool_Reject");
-        stampReject.transform.SetParent(slotReject.transform, false);
-        RectTransform stampRejectRt = stampReject.AddComponent<RectTransform>();
-        stampRejectRt.anchoredPosition3D = Vector3.zero;
-        stampRejectRt.sizeDelta = new Vector2(100f, 100f);
-        stampRejectRt.localScale = Vector3.one;
+        // --- КНОПКА АВАРИЙНОЙ ИЗОЛЯЦИИ (Винтик на столе) ---
+        Transform emergencyTr = canvas.transform.Find("EmergencyIsolateBtn");
+        if (emergencyTr == null)
+        {
+            foreach (GameObject go in Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include))
+            {
+                if (go.name == "EmergencyIsolateBtn") { emergencyTr = go.transform; break; }
+            }
+        }
+        GameObject emergencyBtn = emergencyTr != null ? emergencyTr.gameObject : null;
 
-        Image stampRejectImg = stampReject.AddComponent<Image>();
-        Texture2D stampRejectTex = CreateStampPixelTexture(100, 100, new Color(0.85f, 0.15f, 0.15f));
-        stampRejectImg.sprite = Sprite.Create(stampRejectTex, new Rect(0, 0, 100, 100), new Vector2(0.5f, 0.5f));
-        stampRejectImg.color = Color.white;
+        if (emergencyBtn == null)
+        {
+            emergencyBtn = new GameObject("EmergencyIsolateBtn");
+            emergencyBtn.transform.SetParent(canvas.transform, false);
+            RectTransform rt = emergencyBtn.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(0f, 0f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition3D = new Vector3(230f, 50f, 0f);
+            rt.sizeDelta = new Vector2(30f, 30f);
+            rt.localScale = Vector3.one;
 
-        GrabbableStamp grReject = stampReject.AddComponent<GrabbableStamp>();
-        grReject.isApproveStamp = false;
-        grReject.slotAnchoredPosition = Vector2.zero;
-        grReject.vt323Font = vt323Font;
-        if (accessSlip != null) grReject.passportArea = accessSlip.GetComponent<RectTransform>();
-        else if (trayContainer != null) grReject.passportArea = trayContainer.GetComponent<RectTransform>();
+            Image img = emergencyBtn.AddComponent<Image>();
+            img.raycastTarget = true;
+            Texture2D rivetTex = new Texture2D(30, 30);
+            rivetTex.filterMode = FilterMode.Point;
+            for (int y = 0; y < 30; y++)
+            {
+                for (int x = 0; x < 30; x++)
+                {
+                    float dx = x - 15f;
+                    float dy = y - 15f;
+                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                    if (dist > 14f) rivetTex.SetPixel(x, y, Color.clear);
+                    else
+                    {
+                        float factor = (14f - dist) / 14f;
+                        Color metalColor = new Color(0.55f, 0.57f, 0.6f) * (0.6f + 0.4f * factor);
+                        if (dx < -2f && dy > 2f) metalColor = Color.white * 0.9f;
+                        if (Mathf.Abs(dx - dy) < 2f && dist < 9f) metalColor = new Color(0.15f, 0.15f, 0.16f);
+                        rivetTex.SetPixel(x, y, metalColor);
+                    }
+                }
+            }
+            rivetTex.Apply();
+            img.sprite = Sprite.Create(rivetTex, new Rect(0, 0, 30, 30), new Vector2(0.5f, 0.5f));
+            img.color = Color.white;
+        }
+
+        // Подключаем слушатель в рантайме
+        Button alarmBtnComp = emergencyBtn.GetComponent<Button>();
+        if (alarmBtnComp == null) alarmBtnComp = emergencyBtn.AddComponent<Button>();
+        
+        Navigation noneNav = new Navigation();
+        noneNav.mode = Navigation.Mode.None;
+        alarmBtnComp.navigation = noneNav;
+        
+        ColorBlock colors = alarmBtnComp.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
+        colors.pressedColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        colors.selectedColor = Color.white;
+        colors.fadeDuration = 0.05f;
+        alarmBtnComp.colors = colors;
+
+        alarmBtnComp.onClick.RemoveAllListeners();
+        if (gm != null)
+        {
+            alarmBtnComp.onClick.AddListener(gm.OnRejectClicked);
+        }
 
         // Инициализируем контроллер ящика
-        StampDrawerController drawerCtrl = stampDrawer.AddComponent<StampDrawerController>();
-        drawerCtrl.drawerRt = drawerRt;
+        StampDrawerController drawerCtrl = stampDrawer.GetComponent<StampDrawerController>();
+        if (drawerCtrl == null) drawerCtrl = stampDrawer.AddComponent<StampDrawerController>();
+        drawerCtrl.drawerRt = drawerRtComp;
         drawerCtrl.handleButton = handleObj.GetComponent<Button>();
 
         // Отключаем старые экранные кнопки "ПРОПУСТИТЬ" и "ИЗОЛИРОВАТЬ"
@@ -951,24 +1079,44 @@ public class AutoFixWindowAndDialogue
                     labelRT.anchorMin = new Vector2(0f, 1f);
                     labelRT.anchorMax = new Vector2(0f, 1f);
                     labelRT.pivot = new Vector2(0f, 0.5f);
-                    labelRT.anchoredPosition3D = new Vector3(30f, 0f, 0f);
-                    labelRT.sizeDelta = new Vector2(300f, 45f); // Расширяем плашку, чтобы имя помещалось в одну строку!
+                    labelRT.anchoredPosition3D = new Vector3(30f, -5f, 0f); // Исходное красивое положение на свитке
+                    labelRT.sizeDelta = new Vector2(320f, 42f); // Фиксированный красивый и компактный размер плашки!
                     labelRT.localScale = Vector3.one;
                 }
+
+                // Удаляем HorizontalLayoutGroup и ContentSizeFitter, чтобы избежать бесконечного растяжения
+                UnityEngine.UI.HorizontalLayoutGroup oldLayout = nameLabelTr.GetComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+                if (oldLayout != null) Object.DestroyImmediate(oldLayout);
+
+                UnityEngine.UI.ContentSizeFitter oldFitter = nameLabelTr.GetComponent<UnityEngine.UI.ContentSizeFitter>();
+                if (oldFitter != null) Object.DestroyImmediate(oldFitter);
 
                 TextMeshProUGUI nameTxt = nameLabelTr.GetComponentInChildren<TextMeshProUGUI>(true);
                 if (nameTxt != null)
                 {
+                    // Растягиваем текстовый компонент внутри плашки, чтобы центрирование работало со 100% точностью
+                    RectTransform nameTxtRt = nameTxt.GetComponent<RectTransform>();
+                    if (nameTxtRt != null)
+                    {
+                        nameTxtRt.anchorMin = Vector2.zero;
+                        nameTxtRt.anchorMax = Vector2.one;
+                        nameTxtRt.pivot = new Vector2(0.5f, 0.5f);
+                        nameTxtRt.anchoredPosition3D = Vector3.zero; // Сбрасываем сдвиги
+                        nameTxtRt.offsetMin = new Vector2(10f, 0f);  // Внутренний отступ слева
+                        nameTxtRt.offsetMax = new Vector2(-10f, 0f); // Внутренний отступ справа
+                        nameTxtRt.localScale = Vector3.one;
+                    }
+
                     if (vt323Font != null) nameTxt.font = vt323Font;
-                    nameTxt.fontSize = 16; // Сверхкомпактный изящный размер
+                    nameTxt.fontSize = 20; // Идеальный размер шрифта 20
                     nameTxt.fontStyle = FontStyles.Bold;
-                    nameTxt.enableWordWrapping = false; // Запрещаем перенос слов для предотвращения разбиения имени
+                    nameTxt.enableWordWrapping = false; // Запрещаем перенос
+                    nameTxt.alignment = TextAlignmentOptions.Center; // По центру
 
                     if (hasCustomSprite)
                     {
-                        // На пергаменте используем красивый чернильный/темно-коричневый текст без неона
-                        nameTxt.color = new Color(0.15f, 0.1f, 0.05f, 1f);
-                        nameTxt.alignment = TextAlignmentOptions.Left;
+                        // На пергаменте с железной табличкой делаем текст ярким теплым белым для идеальной видимости!
+                        nameTxt.color = new Color(0.95f, 0.95f, 0.95f, 1f);
 
                         Outline nameOutline = nameTxt.gameObject.GetComponent<Outline>();
                         if (nameOutline != null) Object.DestroyImmediate(nameOutline);
@@ -994,13 +1142,13 @@ public class AutoFixWindowAndDialogue
                 if (contentTxt != null)
                 {
                     if (vt323Font != null) contentTxt.font = vt323Font;
-                    contentTxt.fontSize = 24; // Уменьшаем размер с 44 до 24 для идеального рендеринга!
+                    contentTxt.fontSize = 27; // Увеличиваем размер до 27 (было 24) для идеального чтения без усталости глаз!
                     contentTxt.alignment = TextAlignmentOptions.TopLeft;
 
                     if (hasCustomSprite)
                     {
-                        // На пергаменте используем темно-коричневый чернильный цвет
-                        contentTxt.color = new Color(0.2f, 0.15f, 0.1f, 1f);
+                        // На пергаменте делаем текст насыщенным темно-угольным чернильным для высокой контрастности!
+                        contentTxt.color = new Color(0.06f, 0.05f, 0.04f, 1f);
 
                         Outline contentOutline = contentTr.gameObject.GetComponent<Outline>();
                         if (contentOutline != null) Object.DestroyImmediate(contentOutline);
@@ -1030,6 +1178,55 @@ public class AutoFixWindowAndDialogue
                     }
                 }
             }
+            if (gm != null)
+            {
+                if (portraitTr != null)
+                {
+                    gm.dialoguePortrait = portraitTr.GetComponent<Image>();
+                }
+                
+                // Принудительно конвертируем текстуру охраны в Sprite, если она импортирована как дефолтная
+                string guardPath = "Assets/creepy_guard_asset_1778260414657.png";
+                TextureImporter ti = AssetImporter.GetAtPath(guardPath) as TextureImporter;
+                if (ti != null && ti.textureType != TextureImporterType.Sprite)
+                {
+                    ti.textureType = TextureImporterType.Sprite;
+                    ti.SaveAndReimport();
+                }
+
+                // Автоматически привязываем спрайт охраны/службы безопасности, если они пусты в GameManager
+                if (gm.dispatcherSprite == null)
+                {
+                    gm.dispatcherSprite = AssetDatabase.LoadAssetAtPath<Sprite>(guardPath);
+                }
+                if (gm.guardStandingSprite == null)
+                {
+                    gm.guardStandingSprite = AssetDatabase.LoadAssetAtPath<Sprite>(guardPath);
+                }
+
+                // Автоматически привязываем звуки открытия/закрытия двери, если они пусты
+                if (gm.shutterCloseSound == null)
+                {
+                    gm.shutterCloseSound = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Visitors/закрытия дверя.ogg");
+                }
+                if (gm.shutterOpenSound == null)
+                {
+                    gm.shutterOpenSound = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Visitors/закрытия дверя.ogg");
+                }
+
+                // Автоматически привязываем оверлей газеты, если он есть
+                GameObject npPanel = GameObject.Find("NewspaperPanel");
+                if (npPanel != null)
+                {
+                    gm.newspaperPanel = npPanel;
+                    Transform headTr = npPanel.transform.Find("NewspaperHeadline");
+                    if (headTr != null) gm.newspaperHeadlineText = headTr.GetComponent<TMPro.TextMeshProUGUI>();
+                    Transform bodyTr = npPanel.transform.Find("NewspaperBody");
+                    if (bodyTr != null) gm.newspaperBodyText = bodyTr.GetComponent<TMPro.TextMeshProUGUI>();
+                }
+
+                EditorUtility.SetDirty(gm);
+            }
         }
 
         // ==========================================
@@ -1047,10 +1244,12 @@ public class AutoFixWindowAndDialogue
             "RejectBase",
             "PhysicalMonitor",
             "PhoneButton",
+            "EmergencyIsolateBtn",
             "GlassCracks",
             "BloodOverlay",
             "QuestionsPanel",
             "DialoguePanel",
+            "NewspaperPanel",
             "VictoryPanel",
             "GameOverPanel",
             "PausePanel",
@@ -1073,6 +1272,33 @@ public class AutoFixWindowAndDialogue
             }
         }
 
+        // Автоматически восстанавливаем пустые dossierSprite для всех VisitorData в проекте (поддержка старых и новых генераций)
+        try
+        {
+            string[] visitorGuids = AssetDatabase.FindAssets("t:VisitorData");
+            int repairedCount = 0;
+            foreach (string guid in visitorGuids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                VisitorData vd = AssetDatabase.LoadAssetAtPath<VisitorData>(path);
+                if (vd != null && vd.dossierSprite == null && vd.visitorSprite != null)
+                {
+                    vd.dossierSprite = vd.visitorSprite;
+                    EditorUtility.SetDirty(vd);
+                    repairedCount++;
+                }
+            }
+            if (repairedCount > 0)
+            {
+                AssetDatabase.SaveAssets();
+                Debug.Log($"<color=cyan>[Antigravity] Успешно восстановлены фото досье/паспорта для {repairedCount} персонажей!</color>");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError("[Antigravity] Ошибка автовосстановления фото персонажей: " + ex.Message);
+        }
+
         try
         {
             InspectScene.Inspect();
@@ -1083,7 +1309,8 @@ public class AutoFixWindowAndDialogue
         }
 
         UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
-        Debug.Log("<color=green>[Antigravity] ОКНО И ДИАЛОГОВАЯ ПАНЕЛЬ НАСТРОЕНЫ ИДЕАЛЬНО!</color>");
+        UnityEditor.SceneManagement.EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+        Debug.Log("<color=green>[Antigravity] ОКНО И ДИАЛОГОВАЯ ПАНЕЛЬ НАСТРОЕНЫ ИДЕАЛЬНО И СОХРАНЕНЫ!</color>");
     }
 
     // Создает потрясающую текстуру в стиле терминала Fallout / ЭЛТ-экранов с зеленой/оранжевой рамкой и фоновой сеткой

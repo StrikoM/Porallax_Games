@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShiftData
   shiftName: "\u0421\u043C\u0435\u043D\u0430 7"
   directiveText: "\u0424\u0418\u041D\u0410\u041B\u042C\u041D\u0410\u042F \u0421\u041C\u0415\u041D\u0410.
-    \u041B\u044E\u0434\u0438 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442
+    \u0413\u043E\u0440\u043E\u0434 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442
     \u043D\u0430 \u0432\u0430\u0441."
   shiftVisitors:
   - {fileID: 11400000, guid: b43ba826c8c3fc44eaa530eee0f923ab, type: 2}
@@ -24,3 +24,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3cdf606854d84bf4b8b77c145787bbf6, type: 2}
   - {fileID: 11400000, guid: c17c281386d7fc14c958d92de6d5594e, type: 2}
   - {fileID: 11400000, guid: b9322de97490fa741aa5db2cae7dcffe, type: 2}
+  hasNewspaper: 1
+  newspaperHeadline: "ЧРЕЗВЫЧАЙНОЕ ПОЛОЖЕНИЕ: ВСЕ ВИДЫ МОНСТРОВ В АТАКЕ"
+  newspaperBody: "Сегодня самый опасный день. В городе объявлено военное положение. Все виды монстров — скелеты, киборги, мимики, безглазые твари — бросили все силы на прорыв нашего блокпоста. Сверяйте лица, ID, цвет глаз и сроки действия паспорта. Используйте все средства защиты. Судьба города в ваших руках!"

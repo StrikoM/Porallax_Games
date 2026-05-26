@@ -442,6 +442,29 @@ public class GameSceneBuilder : EditorWindow
         
         gameOverPanelObj.SetActive(false);
 
+        // 3. Панель Газеты (NewspaperPanel)
+        GameObject newspaperPanelObj = CreatePanel("NewspaperPanel", canvasObj.transform, new Color(0.85f, 0.82f, 0.75f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 800));
+        
+        // Линии и Заголовок газеты
+        CreatePanel("NewspaperLineTop", newspaperPanelObj.transform, Color.black, new Vector2(0.05f, 0.9f), new Vector2(0.95f, 0.9f), new Vector2(0, 0), new Vector2(0, 4));
+        CreateText("NewspaperBrand", newspaperPanelObj.transform, "ГОРОДСКОЙ ВЕСТНИК", 36, Color.black, new Vector2(0, 340), new Vector2(800, 50));
+        CreatePanel("NewspaperLineBottom", newspaperPanelObj.transform, Color.black, new Vector2(0.05f, 0.85f), new Vector2(0.95f, 0.85f), new Vector2(0, 0), new Vector2(0, 4));
+        
+        // Главная новость
+        TextMeshProUGUI newsHeadline = CreateText("NewspaperHeadline", newspaperPanelObj.transform, "ЗАГОЛОВОК НОВОСТИ", 28, Color.black, new Vector2(0, 200), new Vector2(800, 80));
+        newsHeadline.fontStyle = FontStyles.Bold;
+        
+        // Текст статьи
+        TextMeshProUGUI newsBody = CreateText("NewspaperBody", newspaperPanelObj.transform, "Текст статьи...", 20, new Color(0.15f, 0.15f, 0.15f), new Vector2(0, -30), new Vector2(800, 320));
+        newsBody.alignment = TextAlignmentOptions.TopLeft;
+        
+        // Кнопка продолжения
+        GameObject btnCloseNewspaperObj = CreatePanel("CloseNewspaperBtn", newspaperPanelObj.transform, new Color(0.15f, 0.15f, 0.15f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -280), new Vector2(300, 70));
+        Button btnCloseNewspaper = btnCloseNewspaperObj.AddComponent<Button>();
+        CreateText("Text", btnCloseNewspaperObj.transform, "ПРИНЯТЬ К СВЕДЕНИЮ", 22, Color.white, Vector2.zero, new Vector2(300, 70));
+        
+        newspaperPanelObj.SetActive(false);
+
         // --- СОБИРАЕМ GAMEMANAGER ---
         GameObject gmObj = new GameObject("GameManager");
         GameManager gm = gmObj.AddComponent<GameManager>();
@@ -468,6 +491,10 @@ public class GameSceneBuilder : EditorWindow
         gm.settingsPanel = settingsPanelObj;
         gm.musicSlider = musicSld;
         gm.sfxSlider = sfxSld;
+        
+        gm.newspaperPanel = newspaperPanelObj;
+        gm.newspaperHeadlineText = newsHeadline;
+        gm.newspaperBodyText = newsBody;
 
         // --- ДИАЛОГИ (АНИМЕ СТИЛЬ) ---
         GameObject diagPanel = CreatePanel("DialoguePanel", canvasObj.transform, new Color(0.05f, 0.05f, 0.08f, 0.9f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, 150), new Vector2(1200, 250));
@@ -521,6 +548,9 @@ public class GameSceneBuilder : EditorWindow
         UnityEditor.Events.UnityEventTools.AddPersistentListener(btnContinueShift.onClick, new UnityEngine.Events.UnityAction(gm.LoadNextShift));
         UnityEditor.Events.UnityEventTools.AddPersistentListener(btnVictoryExit.onClick, new UnityEngine.Events.UnityAction(gm.ReturnToMainMenu));
         UnityEditor.Events.UnityEventTools.AddPersistentListener(btnGameOverExit.onClick, new UnityEngine.Events.UnityAction(gm.ReturnToMainMenu));
+        
+        // Привязываем кнопку закрытия газеты
+        UnityEditor.Events.UnityEventTools.AddPersistentListener(btnCloseNewspaper.onClick, new UnityEngine.Events.UnityAction(gm.StartShiftAfterNewspaper));
 
         // --- ФИНАЛЬНЫЙ ШТРИХ: CRT ЭФФЕКТ (URP SAFE) ---
         GameObject crtOverlay = CreatePanel("CRT_Overlay_Safe", canvasObj.transform, new Color(1,1,1,0.2f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
